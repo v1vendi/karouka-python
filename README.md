@@ -44,7 +44,7 @@ python3.14 -m karouka examples/python_viewer/page.html
 ```
 
 The wheel is self-contained: the engine module, the dylibs it loads (Skia, ICU, HarfBuzz and the
-image codecs) and Ladybird's resources (default stylesheets, fonts).
+image codecs) and Ladybird's resources (default stylesheets, icons).
 
 To build it yourself, see [docs/BUILDING.md](docs/BUILDING.md): `./build.sh` clones Ladybird at
 the pinned commit, applies `patches/ladybird.patch`, builds the module and packs the wheel.

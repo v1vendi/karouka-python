@@ -99,7 +99,7 @@ interpreter's main thread, between bytecodes) or at its next entry point.
 CPython tag comes from the module's `EXT_SUFFIX`, the platform tag from the highest
 `LC_BUILD_VERSION` minos of what it packs). It holds `_karouka.cpython-314-darwin.so` at the top
 level, stripped of its local symbols (`strip -x`; 58 MB to 38 MB), the `karouka` package, Ladybird's
-`Base/res` as `karouka/res/`, and in `karouka/.dylibs/` the 25 dylibs the module loads (the vcpkg
+`Base/res` as `karouka/res/` (less `fonts/`, which only Ladybird's layout-test mode reads), and in `karouka/.dylibs/` the 25 dylibs the module loads (the vcpkg
 ones, Skia's, and theirs in turn, resolved as dyld would). The module's only rpath is
 `@loader_path/karouka/.dylibs`, each dylib's `@loader_path` and its id `@rpath/NAME`; each file is
 ad-hoc re-signed. `tools/wheel.py` fails when a load command names the checkout or the Ladybird tree,

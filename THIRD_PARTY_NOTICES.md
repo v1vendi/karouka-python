@@ -3,7 +3,7 @@
 `patches/ladybird.patch` modifies [Ladybird](https://github.com/LadybirdBrowser/ladybird)
 (BSD 2-Clause, © the Ladybird contributors), and the `_karouka` module contains Ladybird's
 libraries. A built wheel also bundles these libraries in `karouka/.dylibs/`, built by Ladybird's
-vcpkg manifest, and Ladybird's `Base/res` in `karouka/res/`:
+vcpkg manifest, and Ladybird's `Base/res` (less its fonts) in `karouka/res/`:
 
 | Component | Files in the wheel | License |
 | --- | --- | --- |
@@ -25,8 +25,6 @@ vcpkg manifest, and Ladybird's `Base/res` in `karouka/res/`:
 | simdjson | `libsimdjson` | Apache 2.0 or MIT |
 | simdutf | `libsimdutf` | Apache 2.0 or MIT |
 | LibTomMath | `libtommath` | LibTom License (Unlicense) |
-| Noto Emoji | `karouka/res/fonts/NotoEmoji.ttf` | SIL Open Font License 1.1 |
-| Serenity Sans | `karouka/res/fonts/SerenitySans-Regular.ttf` | BSD 2-Clause |
 
 The repository's test fonts in `pages/fonts/` (Noto Sans, Noto Sans Arabic, Noto Sans Devanagari)
 are under the SIL Open Font License 1.1.

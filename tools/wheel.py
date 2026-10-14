@@ -10,7 +10,7 @@ Writes DIR/karouka-<version>-cp3XX-cp3XX-macosx_<minos>_arm64.whl (DIR is replac
 - the `karouka` package (KR_BUILD/lib/karouka, which the build copies from src/python/karouka);
 - `karouka/.dylibs/`: every @rpath dylib the module loads, and theirs in turn (the vcpkg dylibs,
   Skia's), resolved through each original file's own rpaths as dyld would;
-- `karouka/res/`: Ladybird's Base/res (fonts, default stylesheets), which karouka/__init__.py
+- `karouka/res/`: Ladybird's Base/res less its fonts/ (default stylesheets, icons), which karouka/__init__.py
   points the engine at (KR_RESOURCE_ROOT) when the installed package has it.
 
 The module's rpaths become `@loader_path/karouka/.dylibs`, each dylib's `@loader_path`, each dylib's
@@ -196,7 +196,10 @@ def main():
     os.makedirs(stage)
     package = os.path.join(args.build, "lib", "karouka")
     shutil.copytree(package, os.path.join(stage, "karouka"), ignore=shutil.ignore_patterns("__pycache__"))
-    shutil.copytree(args.resources, os.path.join(stage, "karouka", "res"))
+    # Base/res/fonts (Serenity Sans, Noto Emoji) is read only in Ladybird's layout-test mode, which
+    # karouka never enables: its fonts come from the host and the page.
+    shutil.copytree(args.resources, os.path.join(stage, "karouka", "res"),
+                    ignore=lambda d, names: ["fonts"] if os.path.samefile(d, args.resources) else [])
     version_match = re.search(r'^__version__ = "([^"]+)"$', open(os.path.join(package, "__init__.py")).read(), re.M)
     if not version_match:
         sys.exit(f"wheel: no __version__ in {package}/__init__.py")
