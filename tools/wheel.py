@@ -20,7 +20,7 @@ and the version from karouka/__init__.py's __version__.
 
 Fails when a Mach-O isn't arm64-only, when a dependency is neither a system library nor in
 karouka/.dylibs, when an absolute rpath is left, or when any load command names a --forbid path
-(dev.sh wheel passes the checkout, the Ladybird tree and its build). The libpython the module runs
+(build.sh wheel passes the checkout and the Ladybird tree). The libpython the module runs
 against isn't packaged or linked: it is built with -undefined dynamic_lookup, and the interpreter
 that imports it supplies Python's symbols. Prints the wheel's path and size.
 """

@@ -1,6 +1,6 @@
 """asyncio on the host clock, Promises and JS values in page Python.
 
-Run by tools/dev.sh python (and check). Loads tests/python/pages/async.html headless on the
+Run by ./build.sh test. Loads tests/python/pages/async.html headless on the
 software backend and steps the host clock 16 ms a frame (kr_view_advance_time). The page's Python
 sleeps (asyncio.sleep(1), then four sleeps of 0.25 s), awaits fetch() of a file: URL through the
 generated window.fetch and through JS's global, awaits a missing file's and Promise.reject()'s

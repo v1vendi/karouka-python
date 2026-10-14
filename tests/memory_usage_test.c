@@ -6,7 +6,7 @@
  * only its page's: a second view's canvas stays. That includes surfaces made with no script running:
  * an OffscreenCanvas resized by script gets its backing storage at the next rendering update's
  * placeholder commit.
- * Built as karouka_memory_usage_test (C, public header only) and run by tools/dev.sh check. */
+ * Built as karouka_memory_usage_test (C, public header only). */
 
 #include <karouka/karouka.h>
 

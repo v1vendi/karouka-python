@@ -3,7 +3,7 @@
  * through the public ABI: the desc's refusals, the frame's pixels read from the IOSurface and through
  * kr_view_lock_pixels, the PNG capture, kr_view_set_output2's refusal and the GPU cache
  * counters at 0.
- * Built as karouka_software_backend_test (C, public header only) and run by tools/dev.sh check. */
+ * Built as karouka_software_backend_test (C, public header only). */
 
 #include <karouka/karouka.h>
 

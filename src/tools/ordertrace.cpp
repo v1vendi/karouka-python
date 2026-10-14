@@ -1,6 +1,6 @@
 /*
  * karouka_ordertrace: records which functions of libkarouka run, in the order they first run, for
- * the linker order file (tools/orderfile.py). No instrumented build: inserted with
+ * the linker order file. No instrumented build: inserted with
  * DYLD_INSERT_LIBRARIES, its initializer runs before libkarouka's (dyld runs inserted images'
  * initializers first) and writes a `brk` over the first instruction of every function libkarouka's
  * LC_FUNCTION_STARTS lists. The first thread to enter a function traps; the SIGTRAP handler records

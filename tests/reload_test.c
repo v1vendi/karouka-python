@@ -4,7 +4,7 @@
  * viewport's scroll position (clamped to the new page's height) and lists the same files under a new
  * revision. A reload whose file is gone fails and keeps the page. A kr_view_load_html page lists its
  * subresources but no document, and reloads its own markup. Built as karouka_reload_test (C, public
- * header only) and run by tools/dev.sh check. A load is waited for by its title (settle_title), at
+ * header only). A load is waited for by its title (settle_title), at
  * most 10 frames. */
 
 #include "test_util.h"

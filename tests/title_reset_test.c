@@ -1,8 +1,7 @@
 /* kr_view_title follows the page that is loaded: a page without <title> reports "" rather than the
  * last page's title, a titled page after it reports its own, and a title script sets on a
  * titleless page shows up. Removing the <title>, inserting one already filled, or editing its text
- * node changes it too, and another document's <title> or SVG <title> does not. Built as karouka_title_reset_test (as C, against the public header only)
- * and run by tools/dev.sh check. */
+ * node changes it too, and another document's <title> or SVG <title> does not. Built as karouka_title_reset_test (as C, against the public header only). */
 
 #include <karouka/karouka.h>
 

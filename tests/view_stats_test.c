@@ -3,7 +3,7 @@
  * members it knows and nothing past its struct. The kr_view_get_stats symbol that hosts built
  * against the headers before struct_size call writes only those headers' common 48 bytes.
  * Each case hands karouka a buffer filled with a sentinel and checks which bytes changed.
- * Built as karouka_view_stats_test (C, public header only) and run by tools/dev.sh check. */
+ * Built as karouka_view_stats_test (C, public header only). */
 
 #include <karouka/karouka.h>
 

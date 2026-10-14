@@ -1,4 +1,4 @@
-# libkarouka's function order, recorded by tools/dev.sh orderfile; don't edit by hand.
+# libkarouka's function order, recorded with src/tools/ordertrace.cpp; don't edit by hand.
 # Each function appears where a page first ran it. Regenerate after large engine changes:
 # names the image no longer has are ignored, functions it gained are laid out after these.
 # recorded on: ladybird_tree=eecb6614747e series=match karouka=a91a710

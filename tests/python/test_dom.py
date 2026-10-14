@@ -1,6 +1,6 @@
 """<script type="text/python"> in a per-document subinterpreter, against LibWeb's DOM.
 
-Run by tools/dev.sh python (and check). Loads tests/python/pages/dom.html headless on the software
+Run by ./build.sh test. Loads tests/python/pages/dom.html headless on the software
 backend: its Python builds a list, listens to clicks next to JS listeners and raises from a script
 and from a listener (pages/dom.html says what it checks itself). From the app's own interpreter
 this test reads the page through View.document, injects a click with View.inject_input

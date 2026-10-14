@@ -1,6 +1,6 @@
 """the _karouka extension module (src/python/module.cpp) drives a real system and view.
 
-Run by tools/dev.sh python (and check) with the built module on PYTHONPATH and KR_SOURCE_DIR set
+Run by ./build.sh test with the built module on PYTHONPATH and KR_SOURCE_DIR set
 to the checkout: it renders a pages/tests page headless on the software backend, captures a PNG and
 checks the page's title against its karouka-check-title meta; checks the module exports only
 PyInit__karouka; and imports it in a subinterpreter with its own GIL. Exits 1 on any failure.

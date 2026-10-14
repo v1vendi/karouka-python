@@ -6,7 +6,7 @@
  * inside the request and later. A document loaded before the registrations sees them without a
  * reload, and so does a default font set or cleared after it loaded. system-ui, ui-serif, ui-monospace, ui-rounded and the other system UI names
  * follow SF or the default family like every generic family, not CoreText. The page reports text widths in document.title.
- * Built as karouka_font_registration_test (C, public header only) and run by tools/dev.sh check. */
+ * Built as karouka_font_registration_test (C, public header only). */
 
 #include <karouka/karouka.h>
 
@@ -25,8 +25,7 @@ static int failures;
         }                                                                            \
     } while (0)
 
-/* pages/fonts/NAME in $KR_SOURCE_DIR (dev.sh check: the checkout it checks, since the build's
- * karouka-src link moves to the next checkout that builds), else in the source it was built
+/* pages/fonts/NAME in $KR_SOURCE_DIR (the source tree under test), else in the source it was built
  * from. Four results live at once. */
 static char const* font_file(char const* name)
 {

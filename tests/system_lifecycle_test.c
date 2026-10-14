@@ -1,8 +1,7 @@
 /* One system per process: a second kr_system_create2 while a system is alive fails with
  * KR_ERROR_INVALID_ARGUMENT, and a create after kr_system_destroy fails with KR_ERROR_INVALID_STATE
  * instead of running LibWeb's process-wide setup again on halted threads. The process then exits
- * cleanly. Built as karouka_system_lifecycle_test (C, public header only) and run by
- * tools/dev.sh check. */
+ * cleanly. Built as karouka_system_lifecycle_test (C, public header only). */
 
 #include <karouka/karouka.h>
 

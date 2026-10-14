@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Snapshot the shared karouka build so dev.sh check can render without the build lock.
+"""Snapshot a karouka build into a self-contained directory; tools/wheel.py uses its Mach-O helpers.
 
   tools/snapshot_build.py --build KR_BUILD --resources BASE_RES --out DIR
 

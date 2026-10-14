@@ -15,7 +15,7 @@
  * sampled color under partial raster: two views loaded and stepped on the same clock, one rendered
  * every frame, the other once at the end (the damage diff once called any two
  * background-color animation nodes equal, whatever colors they were sampled at).
- * Built as karouka_partial_raster_test (C, public header only) and run by tools/dev.sh check. */
+ * Built as karouka_partial_raster_test (C, public header only). */
 
 #include <karouka/karouka.h>
 
@@ -39,8 +39,8 @@ static int failures;
 
 enum { width = 160, height = 120 };
 
-/* The largest per-channel difference from a whole raster the software backend may show (tools/dev.sh
- * holds its captures to Metal's within 16 too, CHECK_SOFTWARE_TOLERANCE). */
+/* The largest per-channel difference from a whole raster the software backend may show (the software
+ * backend's captures are held to Metal's within 16 elsewhere too). */
 enum { software_tolerance = 16 };
 
 static char const page[] =

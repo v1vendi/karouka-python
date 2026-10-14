@@ -6,7 +6,7 @@
  * trigger and for a resolve, which leaves the call pending; an
  * iframe has no document, so no `engine` of its own, and host triggers reach only the page's
  *. The page reports what it received in document.title each frame.
- * Built as karouka_engine_channel_test (C, public header only) and run by tools/dev.sh check. */
+ * Built as karouka_engine_channel_test (C, public header only). */
 
 #include <karouka/karouka.h>
 

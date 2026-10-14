@@ -2,8 +2,7 @@
  * InactiveSelection, a focused one in Selection, and the change repaints the page on the next frame.
  * Unfocused, document.hasFocus() is false and a focused field's caret stops blinking (no frame
  * renders for it); the state lasts across a load. A change fires blur or focus at the window and the
- * focused field. Built as karouka_view_focus_test (C, public header only) and run by
- * tools/dev.sh check. */
+ * focused field. Built as karouka_view_focus_test (C, public header only). */
 
 #include "test_util.h"
 

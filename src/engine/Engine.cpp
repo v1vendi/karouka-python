@@ -636,10 +636,10 @@ using Karouka::debug_enabled;
 // Skia's glyph cache strike count limit; see kr_system_create2.
 static constexpr int font_cache_strike_limit = 256;
 
-// KR_FONT_HINTING=none|slight|normal|full: the hinting every glyph rasterizes with (patch 0057,
-// ). Unset (or anything else): Skia's default, kNormal, which Skia's CoreText scaler takes
+// KR_FONT_HINTING=none|slight|normal|full: the hinting every glyph rasterizes with.
+// Unset (or anything else): Skia's default, kNormal, which Skia's CoreText scaler takes
 // as leave to use CoreGraphics' font smoothing, dilating glyphs past their outlines. karouka_viewer
-// --font-hinting sets it; tools/wpt.py passes none, as reftests compare glyph edges.
+// --font-hinting sets it; reftests want none, as they compare glyph edges.
 static Optional<Gfx::FontHintingStyle> font_hinting_from_environment()
 {
     auto const* value = getenv("KR_FONT_HINTING");
@@ -974,8 +974,7 @@ kr_result kr_system_create2(kr_system_desc const* host_desc, kr_system** out_sys
     Web::Embedder::set_fetch_reads_file_urls(true);
     // <script> types a view registered run through it (kr_view_set_script_type_callback, ScriptTypes.h).
     Web::Embedder::set_script_type_handler(&s_script_type_dispatch);
-    // Without one from the host, $KR_RESOURCE_ROOT, then the build's: tools/dev.sh check points it at
-    // its snapshot of Base/res, which the shared Ladybird tree's next owner can't edit under it.
+    // Without one from the host, $KR_RESOURCE_ROOT, then the build's.
     auto const* env_resource_root = getenv("KR_RESOURCE_ROOT");
     auto resource_root = ByteString(desc && desc->resource_root ? desc->resource_root
             : env_resource_root && *env_resource_root             ? env_resource_root
@@ -2504,7 +2503,7 @@ static bool full_raster_forced()
 // whole, so it ends with the same pixels. Not upstream's damage-sized
 // surface (d236b0ebb9) for GPU surfaces: drawn at an offset, a gradient's dither and
 // edges' coverage land on other pixels than a whole raster's, so a view's pixels would depend on the
-// damage of the frames before (karouka_partial_raster_test; dev.sh check compares views exactly). A
+// damage of the frames before (karouka_partial_raster_test compares views exactly). A
 // host texture larger than the view keeps its pixels outside the frame.
 static void replay_into_damage(kr_view& view, Web::DOM::Document& document, Compositing::DisplayList const& display_list, Compositing::AccumulatedVisualContextTree const& visual_context_tree, Compositing::ScrollStateSnapshot const& scroll_state, DamageRects const& damage)
 {

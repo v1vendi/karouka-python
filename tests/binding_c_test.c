@@ -1,6 +1,6 @@
 /* The kr_binding_* C ABI end to end: a real system and view, values set across reloads, handles that
  * stay the same, types that stay fixed, and view-local handles. Built as karouka_binding_c_test (as
- * C, against the public header only) and run by tools/dev.sh check. */
+ * C, against the public header only). */
 
 #include <karouka/karouka.h>
 

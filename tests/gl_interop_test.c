@@ -21,7 +21,7 @@
  *
  * With no OpenGL renderer on the host (CGLChoosePixelFormat finds none) the test prints that it
  * skipped and passes: macOS still ships OpenGL (on Metal) on every Mac karouka builds for.
- * Built as karouka_gl_interop_test (C, public header only) and run by tools/dev.sh check. */
+ * Built as karouka_gl_interop_test (C, public header only). */
 
 #define GL_SILENCE_DEPRECATION 1
 

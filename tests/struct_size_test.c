@@ -15,7 +15,7 @@
  * One system per process: the main run creates its system from an older header's desc; it runs
  * itself again ("newer", "legacy") for the other two system cases, and ("metal") for
  * kr_metal_output, which needs a system with the host's Metal device and queue.
- * Built as karouka_struct_size_test (C, public header only) and run by tools/dev.sh check. */
+ * Built as karouka_struct_size_test (C, public header only). */
 
 #include <karouka/karouka.h>
 
@@ -323,8 +323,7 @@ static void check_memory_stats(kr_system* system)
 
 /* ---- font descs: past struct_size, collection_index would be 0xABABABAB, a face the font lacks */
 
-/* pages/fonts/NotoSans-Regular.ttf in $KR_SOURCE_DIR (dev.sh check: the checkout it checks; the
- * build's karouka-src link moves to the next checkout that builds), else in the source it
+/* pages/fonts/NotoSans-Regular.ttf in $KR_SOURCE_DIR (the source tree under test), else in the source it
  * was built from. */
 static char const* font_path(void)
 {

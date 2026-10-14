@@ -5,8 +5,7 @@
 // recorded at two raster scales paints with the uniforms it declares, 1000 raster scales keep the registry at one
 // entry, a shader that declares uTime is live and draws its time since the registry's time origin at each replay,
 // directly and as a repeated tile (which the player would otherwise cache), and a shader that doesn't compile or
-// declares a uniform karouka doesn't supply logs once and records nothing. Built as karouka_embedder_content_test and
-// run by tools/dev.sh check.
+// declares a uniform karouka doesn't supply logs once and records nothing. Built as karouka_embedder_content_test.
 
 #include "ShaderImage.h"
 

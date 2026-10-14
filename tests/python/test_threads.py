@@ -1,6 +1,6 @@
 """a View or System whose last reference goes on another thread is destroyed on the main thread.
 
-Run by tools/dev.sh python (and check). The engine runs on the main thread only, so module.cpp
+Run by ./build.sh test. The engine runs on the main thread only, so module.cpp
 queues a View or System dropped elsewhere and the main thread destroys it from a pending call
 (Py_AddPendingCall) or at its next entry point. This test drops a View running
 tests/python/pages/dom.html (a document interpreter, an app-side proxy) on a worker thread, then a

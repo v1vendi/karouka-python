@@ -1,6 +1,6 @@
 """the generated bindings (docs/PYTHON.md § Bindings).
 
-Run by tools/dev.sh python (and check). Two pages, headless on the software backend:
+Run by ./build.sh test. Two pages, headless on the software backend:
 - pages/globals.html lists, from JS, every interface object on window; each must be reachable from
   Python as an attribute of window (the generated type, or an alias such as Image), except the
   ECMAScript built-ins below, which are JS's own.

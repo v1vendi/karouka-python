@@ -6,7 +6,7 @@
  * and the timers must have fired as often as their intervals say (a cheaper advance that drops
  * firings is no fix). The ceilings are the counts measured when this was written plus a little room:
  * a change that pumps more per step, or steps where no timer is due, fails here.
- * Built as karouka_host_clock_pumps_test (C, public header only) and run by tools/dev.sh check. */
+ * Built as karouka_host_clock_pumps_test (C, public header only). */
 
 #include <karouka/karouka.h>
 

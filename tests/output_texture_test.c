@@ -9,7 +9,7 @@
  * none (the render draws into the IOSurface).
  * Needs the host's Metal device and queue (one system per process); memoryless textures need an
  * Apple GPU, so that case is skipped, with a message, on a GPU without them.
- * Built as karouka_output_texture_test (C, public header only) and run by tools/dev.sh check. */
+ * Built as karouka_output_texture_test (C, public header only). */
 
 #include <karouka/karouka.h>
 

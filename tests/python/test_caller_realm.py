@@ -1,6 +1,6 @@
 """[NeedsCallerRealm] members called from Python, where no JS function is running.
 
-Run by tools/dev.sh python (and check). A Python call enters the document realm's execution
+Run by ./build.sh test. A Python call enters the document realm's execution
 context (Call: HTML::TemporaryExecutionContext with callbacks enabled), which has no function,
 so a member whose C++ reads its caller from the running execution context crashes there:
 Fetch::fetch did (FetchMethod.cpp, `vm.running_execution_context().function`), and Window.fetch

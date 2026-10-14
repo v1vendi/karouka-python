@@ -5,7 +5,7 @@
  * reports the bound targets in document.title each frame; the bindings themselves run no script.
  * That title write changes the tree every frame, so every frame rescans: a bad expression is still
  * reported once per document. A third page inserts bound markup by script after load.
- * Built as karouka_binding_dom_test (C, public header only) and run by tools/dev.sh check. */
+ * Built as karouka_binding_dom_test (C, public header only). */
 
 #include <karouka/karouka.h>
 

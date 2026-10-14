@@ -1,6 +1,5 @@
 /*
- * The entry points that hosts built against the headers before struct_size call (
- * ).
+ * The entry points that hosts built against the headers before struct_size call.
  * Not declared in karouka.h. Each takes its struct in the layout those headers had and forwards to
  * the sized entry point, reading or writing only the bytes every one of those headers' structs
  * held: the structs grew from header to header with nothing in them saying which one a host has.

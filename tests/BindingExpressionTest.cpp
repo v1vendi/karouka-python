@@ -1,6 +1,5 @@
 // Unit tests of Karouka::BindingExpression (src/engine/BindingExpression.h), the expression
-// contract of Tessera's data-binding spec. Built as karouka_binding_expression_test and
-// run by tools/dev.sh check.
+// contract of Tessera's data-binding spec. Built as karouka_binding_expression_test.
 
 #include "BindingExpression.h"
 

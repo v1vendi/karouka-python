@@ -5,8 +5,7 @@
  * karouka's `shader cache: H hits, M misses, P precompiled, N programs` line (KR_DEBUG=1, through
  * the host log). The first run must build programs (misses) and write a file; the next must find
  * all of them, those of the first frame precompiled from the file's warm list at kr_system_create2
- * and the rest loaded (hits), and leave the file as it was. Built as karouka_shader_cache_test (C, public header only)
- * and run by tools/dev.sh check. */
+ * and the rest loaded (hits), and leave the file as it was. Built as karouka_shader_cache_test (C, public header only). */
 
 #include <karouka/karouka.h>
 

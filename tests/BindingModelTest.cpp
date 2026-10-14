@@ -1,5 +1,5 @@
 // Unit tests of Karouka::BindingModel (src/engine/BindingModel.h): resolve, setters, coalescing,
-// ceilings. Built as karouka_binding_model_test and run by tools/dev.sh check.
+// ceilings. Built as karouka_binding_model_test.
 
 #include "BindingModel.h"
 

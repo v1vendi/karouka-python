@@ -13,12 +13,12 @@
  *
  * --capture-again N:out.png (headless, after --frames F, N > F) runs on past frame F, where --capture,
  * --check-title, --stats and the other end-of-run checks happen as usual, to frame N and captures the
- * first view again to out.png: tools/dev.sh check compares a page's frames 30 and 60 in one run (
- * ). --check-full-raster (headless, the viewer's GPU) checks partial raster at the end of
+ * first view again to out.png, so a page's frames 30 and 60 compare in one run.
+ * --check-full-raster (headless, the viewer's GPU) checks partial raster at the end of
  * the run, after the rest: the pixels the first view's partial rasters left in its IOSurface are copied,
  * karouka draws the same frame whole into a fresh texture of the viewer's (a new target rasters whole),
  * and the two must match exactly, or the run exits 4 (1 when another check failed too). It prints "karouka_viewer: full raster check ...
- * matches" or "DIFFERS FROM"; dev.sh check runs it with --host-io async.
+ * matches" or "DIFFERS FROM".
  *
  * --frames N steps the page's clock by a fixed 16.67 ms per frame, as tessera_viewer does, so a
  * run's frames and --capture depend on N only; without it the viewer passes the real clock.
@@ -39,7 +39,7 @@
  * thread's own CPU time in those frames and off_cpu_s their wall less it (waits on other threads, on
  * the GPU and on a core; the --fps sleep is outside the frames), main_cpu_p50 and off_cpu_p50/p95
  * the same per frame, in ms.
- * --headless --frames 0 loads the page and never renders it (tools/dev.sh mem uses it to check that
+ * --headless --frames 0 loads the page and never renders it (use it to check that
  * nothing is allocated for rendering before the first render). --hold stops the process (SIGSTOP)
  * after a headless run so vmmap/footprint can inspect it, views still alive; SIGCONT lets it exit.
  * --memory-stats prints, after a headless run, the allocator totals (karouka-memory, kr_memory_stats)
@@ -59,12 +59,10 @@
  * which would mean the counter is broken (kr_view_stats.layout_updates, counted from the end of one
  * frame to the end of the next; the load before the first frame isn't a frame). A page lays out
  * several times a frame while it loads (animations_page.html: 2-4 passes in frames 0-2), hence F;
- * a static page lays out in no frame after that, so N may be 0. tools/dev.sh check runs
- * animations_page.html and the static demo pages with 0@10. --stats reports each
+ * a static page lays out in no frame after that, so N may be 0. --stats reports each
  * view's passes over all frames (layouts=) and the most in one frame (layouts_frame_max=).
  * --print-meta NAME prints the content of the page's first <meta name=NAME> and exits (1 when there
- * is none) without creating a GPU device or a karouka system; tools/dev.sh check reads each test
- * page's karouka-check-input with it, the same scan --check-title uses.
+ * is none) without creating a GPU device or a karouka system, with the same scan --check-title uses.
  *
  * Without a page it opens pages/index.html, the demo picker. In a window, the Pages menu switches
  * pages: Cmd+0 the start page, Cmd+1..9 the demo pages, Cmd+Shift+] / Cmd+Shift+[ the next or
@@ -79,8 +77,7 @@
  * --second opens another view of the same system beside the first; repeat it for more views (four
  * views: --second b.html --second c.html --second d.html). Every view is --size and renders through
  * the system's one Metal device and Skia context. Scripted input goes to the first view, or to view
- * N with --input-view N (1-based; tools/dev.sh check uses it so that input sent to the first view
- * instead of a later one fails); --capture out.png writes view N (N >= 2) to out-N.png; --stats prints one line per view. --close-second F
+ * N with --input-view N (1-based); --capture out.png writes view N (N >= 2) to out-N.png; --stats prints one line per view. --close-second F
  * destroys the second view at frame F while the others keep running. In a window, the Pages menu
  * acts on the view that was clicked last.
  *
@@ -108,16 +105,16 @@
  * builds every program in every run (the first frame of a cold start). With KR_SHADER_CACHE_DIR=DIR
  * the default is instead the page's own file in DIR, DIR/<name>-<hash of the page's real path>.bin
  * (the first view's page), so a run's precompiled programs are that page's and not whatever page ran
- * last on the machine: tools/dev.sh check sets it for every viewer it runs.
+ * last on the machine.
  * With KR_DEBUG=1 the viewer prints what kr_system_create2 cost besides its wall time: the
  * process's CPU, runnable time and instructions, and the main thread's CPU and off-CPU time.
  *
- * --doc-root DIR serves root-relative loads the way a web server rooted at DIR would (the
- * WPT runner tools/wpt.py: `/fonts/ahem.css` resolves to file:///fonts/ahem.css, which reads
+ * --doc-root DIR serves root-relative loads the way a web server rooted at DIR would (as a
+ * WPT runner needs: `/fonts/ahem.css` resolves to file:///fonts/ahem.css, which reads
  * DIR/fonts/ahem.css). A file: URL whose path is outside DIR and names no file is read from DIR + its
  * path; every other path is read as it is. Implies --host-io sync unless --host-io names a mode.
  *
- * --testharness (tools/wpt.py's testharness.js suite) runs a WPT testharness.js document and
+ * --testharness runs a WPT testharness.js document and
  * prints what it reported. The viewer is the embedder wptrunner leaves testharnessreport.js to: a read
  * of .../resources/testharnessreport.js that names no file gets testharness_reporter below, which turns
  * the harness's own output off and, on completion, console.logs one report (testharness_marker, then
@@ -135,8 +132,8 @@
  *
  * --font-hinting none|slight|normal|full sets KR_FONT_HINTING before the engine starts:
  * every glyph rasterizes with that Skia hinting. Without it macOS gets Skia's default, kNormal,
- * which CoreGraphics renders with font smoothing that dilates glyphs past their outlines; tools/wpt.py
- * passes none, as reftests compare glyph edges.
+ * which CoreGraphics renders with font smoothing that dilates glyphs past their outlines; reftests
+ * want none, as they compare glyph edges.
  *
  * Any view showing a page named hud_page.html is driven by a stand-in game (HudGame below) that sets
  * the page's data-bind-* model with kr_binding_set_* before every kr_view_advance_time.
@@ -235,8 +232,7 @@ struct Options {
     int64_t max_layouts_per_frame { -1 };
     uint32_t layout_check_from { 0 };
     // --print-meta NAME: print the content of the page's first <meta name=NAME> (meta_content) and
-    // exit without starting karouka; exit 1 when the page has none. tools/dev.sh check reads each
-    // test page's karouka-check-input through it, so the shell and the viewer share one parser.
+    // exit without starting karouka; exit 1 when the page has none.
     std::optional<std::string> print_meta;
     // Host fonts (kr_system_add_font_file2): path, family ("" = the font's own), glyph fallback.
     struct Font {
@@ -421,7 +417,7 @@ double kmalloc_reusable_dirty_mb()
 
 // KR_MEM_HOLD=<phase> stops the process (SIGSTOP) right after that phase is reported, for vmmap.
 // With --mem-phases-heap, once the system exists, also prints its kmalloc (mimalloc, VM tag 240)
-// and GC heap dirty bytes and how long that walk took (it is not free: ), and, when karouka_miprof is inserted (tools/dev.sh mem --attribute), has it write its
+// and GC heap dirty bytes and how long that walk took (it is not free), and, when karouka_miprof is inserted (DYLD_INSERT_LIBRARIES), has it write its
 // per-call-site snapshot for the phase.
 void mem_phase(char const* phase)
 {
@@ -2325,7 +2321,7 @@ int main(int argc, char** argv)
             return 1;
         }
         // kr_system_create2's cost in terms the machine's load moves less than its wall time, for the
-        // startup gate (tools/dev.sh startup_check): instructions retired by every thread
+        // startup gate: instructions retired by every thread
         // (the work done, whatever the core and its clock) and the main thread's off-CPU time, its
         // wall time less its own CPU time (sleeps, waits on other threads and on a CPU). Runnable
         // and CPU are the process's: all its threads, summed.
@@ -2460,7 +2456,7 @@ int main(int argc, char** argv)
                 printf("%s\n", HostCallbacks::s_testharness_report->c_str());
                 fflush(stdout);
             }
-            // 4: --check-full-raster failed and nothing else did (dev.sh check tells the two apart).
+            // 4: --check-full-raster failed and nothing else did.
             return s_output_check_failed || s_title_check_failed || s_layout_check_failed ? 1 : s_full_raster_check_failed ? 4 : 0;
         }
 

@@ -10,7 +10,7 @@
  * script run and the sheet applied, and the loads after the first at the same frame with the same
  * title. The first load in a fresh system lands a frame later (frame 2, then frame 1), the same on
  * every run, so it is not compared. Built as karouka_script_frame_test (as C, against the
- * public header only) and run by tools/dev.sh check. */
+ * public header only). */
 
 #include "test_util.h"
 

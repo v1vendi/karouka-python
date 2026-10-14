@@ -2,8 +2,7 @@
  * off-thread job is one script compile runs it on one pool thread, not four (each has an 8 MiB stack),
  * and a page with no such job starts none. An idle pool thread exits after ~3 s of wall time without
  * work, and the next job starts one again (patch 0058). Counts this process's threads named
- * "Pool/N". Built as karouka_pool_threads_test (as C, against the public header only) and run by
- * tools/dev.sh check. */
+ * "Pool/N". Built as karouka_pool_threads_test (as C, against the public header only). */
 
 #include "test_util.h"
 

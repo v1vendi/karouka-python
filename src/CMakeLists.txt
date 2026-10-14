@@ -1,5 +1,5 @@
 # Built as a subdirectory of the pinned Ladybird tree (patch 0003), so the engine compiles with
-# Ladybird's exact toolchain, flags and library targets. tools/dev.sh drives it.
+# Ladybird's exact toolchain, flags and library targets. build.sh drives it.
 # The viewer's .mm compiles as CXX, like Ladybird's own .mm files: clang selects Objective-C++ from
 # the extension. (enable_language(OBJCXX) here would reroute Ladybird's .mm files too.)
 
@@ -42,16 +42,15 @@ target_include_directories(karouka PUBLIC "${KAROUKA_SOURCE_DIR}/include")
 # from the same objects (karouka_engine and the Lagom object file list below), exporting only
 # PyInit__karouka. It is built against KAROUKA_PYTHON's headers and named with its EXT_SUFFIX, and
 # its Python symbols are left to the interpreter that loads it (-undefined dynamic_lookup).
-# KAROUKA_PYTHON's path goes next to the module (_karouka.python), for tools/dev.sh python. It is a
-# cache variable, so another CPython 3.14 can build the module: tools/dev.sh sets it from KR_PYTHON
-# on every configure, as this build dir is shared by every checkout.
+# KAROUKA_PYTHON's path goes next to the module (_karouka.python). It is a
+# cache variable, so another CPython 3.14 can build the module: build.sh sets it from KAROUKA_PYTHON.
 set(KAROUKA_PYTHON "/opt/homebrew/bin/python3" CACHE FILEPATH "The CPython 3.14 interpreter the _karouka module is built for")
 execute_process(
     COMMAND "${KAROUKA_PYTHON}" -c "import sys, sysconfig; print(sysconfig.get_path('include')); print(sysconfig.get_config_var('EXT_SUFFIX')); print(sys.implementation.name, '%d.%d' % sys.version_info[:2], 'free-threaded' if sysconfig.get_config_var('Py_GIL_DISABLED') else 'gil')"
     OUTPUT_VARIABLE karouka_python_config OUTPUT_STRIP_TRAILING_WHITESPACE RESULT_VARIABLE karouka_python_status
 )
 if (NOT karouka_python_status EQUAL 0)
-    message(FATAL_ERROR "karouka: the _karouka module needs a CPython 3.14 interpreter; ${KAROUKA_PYTHON} doesn't run (KR_PYTHON for tools/dev.sh, KAROUKA_PYTHON for CMake)")
+    message(FATAL_ERROR "karouka: the _karouka module needs a CPython 3.14 interpreter; ${KAROUKA_PYTHON} doesn't run (set KAROUKA_PYTHON)")
 endif()
 string(REPLACE "\n" ";" karouka_python_config "${karouka_python_config}")
 list(GET karouka_python_config 0 KAROUKA_PYTHON_INCLUDE)
@@ -212,8 +211,8 @@ endif()
 # merged copy (two copies of its globals). Their other dependencies (vcpkg dylibs, Rust static
 # libraries, frameworks) are linked as they are.
 set(karouka_lagom_deps "")
-# the literals an empty page reads (src/libkarouka_literals.c, recorded with the order file by
-# tools/orderfile.py). ld keeps the first copy of equal literals and the order file can't place them,
+# the literals an empty page reads (src/libkarouka_literals.c, recorded with the order file).
+# ld keeps the first copy of equal literals and the order file can't place them,
 # so this object goes first on the link line: the read ones lie together at the start of __cstring
 # and __const. It has no initializers, so the Lagom ones still run first.
 add_library(karouka_literals OBJECT "${KAROUKA_SOURCE_DIR}/src/libkarouka_literals.c")
@@ -260,7 +259,6 @@ foreach(lib IN LISTS KAROUKA_LAGOM_LIBS)
     endforeach()
 endforeach()
 list(REMOVE_DUPLICATES karouka_lagom_deps)
-# Read by tools/dev.sh ladybird too, to build the objects without linking the dylibs.
 set(KAROUKA_LAGOM_OBJECTS_FILE "${CMAKE_CURRENT_BINARY_DIR}/lagom-objects.txt")
 file(GENERATE OUTPUT "${KAROUKA_LAGOM_OBJECTS_FILE}" CONTENT "${karouka_lagom_objects}")
 # file(GENERATE) rewrites it only when the list changes, so a removed object relinks too.
@@ -277,7 +275,7 @@ endforeach()
 target_link_options(karouka PRIVATE "LINKER:-exported_symbol,_kr_*")
 # lay out first the functions an empty page runs, in the order it first runs them, so the
 # __text pages a page touches are few and adjacent instead of ~1000 scattered over 37 MB. The order
-# file is recorded by tools/dev.sh orderfile (tools/orderfile.py, src/tools/ordertrace.cpp), which
+# file is recorded with src/tools/ordertrace.cpp, which
 # reads the link map for the object files of static functions whose names repeat. Names the image
 # no longer has are ignored, so a stale order file costs pages, not correctness.
 set(KAROUKA_ORDER_FILE "${KAROUKA_SOURCE_DIR}/src/libkarouka.order")
@@ -333,7 +331,7 @@ set_target_properties(karouka_viewer PROPERTIES
 )
 
 # a counting interposer for mimalloc (src/tools/miprof.cpp), inserted with
-# DYLD_INSERT_LIBRARIES by tools/dev.sh mem --attribute. Nothing links it.
+# DYLD_INSERT_LIBRARIES. Nothing links it.
 add_library(karouka_miprof SHARED tools/miprof.cpp)
 target_link_libraries(karouka_miprof PRIVATE mimalloc)
 set_target_properties(karouka_miprof PROPERTIES
@@ -342,13 +340,13 @@ set_target_properties(karouka_miprof PROPERTIES
 )
 
 # records the order libkarouka's functions first run in (src/tools/ordertrace.cpp), for
-# tools/orderfile.py, inserted with DYLD_INSERT_LIBRARIES. Nothing links it.
+# the order file, inserted with DYLD_INSERT_LIBRARIES. Nothing links it.
 add_library(karouka_ordertrace SHARED tools/ordertrace.cpp)
 set_target_properties(karouka_ordertrace PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/karouka/lib"
 )
 
-# Tests, run by tools/dev.sh check. The model test compiles the model alone, against AK only; the C
+# Tests. The model test compiles the model alone, against AK only; the C
 # test drives the public ABI through a real system and view, compiled as C.
 add_executable(karouka_binding_model_test "${KAROUKA_SOURCE_DIR}/tests/BindingModelTest.cpp" engine/BindingModel.cpp)
 target_include_directories(karouka_binding_model_test PRIVATE "${KAROUKA_SOURCE_DIR}/include" engine)

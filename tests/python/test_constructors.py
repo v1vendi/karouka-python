@@ -1,7 +1,7 @@
 """IDL constructors, static members, dictionary arguments, [CreatesPromise] operations,
 named getters and [PutForwards] from Python (docs/PYTHON.md § Bindings).
 
-Run by tools/dev.sh python (and check). Loads tests/python/pages/constructors.html headless,
+Run by ./build.sh test. Loads tests/python/pages/constructors.html headless,
 whose Python constructs Event/URL/Blob and the rest and publishes what it saw; then does the
 same from the app's interpreter (View.window, whose one open document the objects are made in).
 Also checks that _karouka._bindings_report() lists no constructor, static member, named getter or

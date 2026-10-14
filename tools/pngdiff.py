@@ -6,24 +6,22 @@
     tools/pngdiff.py --pixels "X,Y=#RRGGBB[~DELTA] ..." actual.png
 
 Exit 0 when the decoded pixels are identical, 1 when they differ (size, or the count of differing
-pixels and the first one), 2 when a file can't be read. tools/dev.sh check uses it to hold
-multi-view captures to the single-view ones.
+pixels and the first one), 2 when a file can't be read.
 
 With --tolerance, a pixel differs only when a channel differs by more than DELTA, and the images
 match while at most PERCENT (default 0) percent of the pixels differ; the largest channel delta is
-printed either way. tools/dev.sh check holds the software backend's captures to the Metal ones so:
+printed either way. The software backend's captures can be held to the Metal ones so, as
 the two rasterize anti-aliased edges and gradients slightly differently.
 
 With --pixels, the PNG's pixel at each (X,Y) must have the RGB colour given, each channel within
 DELTA (default 0); alpha is ignored. Exit 0 when every sample matches, 1 when one doesn't (every
-sample is printed), 2 when the spec or the file can't be read. tools/dev.sh check holds a test
-page's captures (alone, software, host io, multi-view) to its karouka-check-pixels meta so:
+sample is printed), 2 when the spec or the file can't be read. It checks
 what only paint shows, such as a selection highlight, which no title can read
 back.
 
 It needs only the standard library. When Pillow is installed, a differing pair is decoded and
 compared in C, with the same verdict and output: ~0.06 s a pair against ~1 s in pure Python for two
-800x600 captures at load ~30. tools/wpt.py imports compare() for its reftests.
+800x600 captures at load ~30. compare() serves fuzzy reftests.
 """
 
 import struct
@@ -255,7 +253,7 @@ def delta_counts(width, height, channels, p1, p2, delta):
 
 
 def compare(a_path, b_path):
-    """(size_mismatch, max_channel_delta, differing_pixels) of two PNG files, for tools/wpt.py's
+    """(size_mismatch, max_channel_delta, differing_pixels) of two PNG files, for a
     fuzzy-reftest judgement. A size or channel-count mismatch is (True, 255, pixels of the first).
     Raises OSError, ValueError or zlib.error for a file that can't be read."""
     expected, actual = read_png(a_path), read_png(b_path)

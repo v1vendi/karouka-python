@@ -7,7 +7,7 @@
  * or a failed script, then defer scripts in order before DOMContentLoaded, an async one before the
  * window's load. The callback gets UTF-8 text, the URL and the start line. With the callback
  * removed, or for a type never registered, the scripts are ignored and fire nothing. Built as
- * karouka_script_type_test (as C, against the public header only) and run by tools/dev.sh check. */
+ * karouka_script_type_test (as C, against the public header only). */
 
 #include "test_util.h"
 

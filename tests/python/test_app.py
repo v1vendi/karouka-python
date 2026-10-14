@@ -1,6 +1,6 @@
 """karouka.App (src/python/app.mm) and python -m karouka, headless on the software backend.
 
-Run by tools/dev.sh python (and check) with the built lib dir (the _karouka module and the karouka
+Run by ./build.sh test with the built lib dir (the _karouka module and the karouka
 package) on PYTHONPATH. One App drives tests/python/pages/app.html: clicks, keys and a resize reach
 the page's Python, the window's title follows document.title, closing the last window returns from
 run(), stop() returns with the windows open, and what on_frame raises comes out of run(). Then

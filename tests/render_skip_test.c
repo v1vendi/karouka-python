@@ -5,7 +5,7 @@
  * visible content, and a visible change, do. The page's handlers run from engine triggers.
  * Animated shader() images: one below the fold renders nothing, and in view it renders every
  * frame, rasterizing its own box (a repeated tile) and not the still shader() beside it.
- * Built as karouka_render_skip_test (C, public header only) and run by tools/dev.sh check. */
+ * Built as karouka_render_skip_test (C, public header only). */
 
 #include <karouka/karouka.h>
 

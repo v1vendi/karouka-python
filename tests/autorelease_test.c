@@ -39,7 +39,7 @@
  * probed kr_io_complete (copied and borrowed), then kr_view_load_file completed inside the request,
  * and kr_io_complete refusing an id that is not pending.
  *
- * Built as karouka_autorelease_test (C, public header only) and run by tools/dev.sh check. */
+ * Built as karouka_autorelease_test (C, public header only). */
 
 #include <karouka/karouka.h>
 
@@ -161,7 +161,7 @@ static void finish(void* command_buffer)
 
 /* ---- Pages, fonts and the engine channel, shared by both runs. */
 
-/* pages/fonts/NAME in $KR_SOURCE_DIR (dev.sh check: the checkout it checks), else in the
+/* pages/fonts/NAME in $KR_SOURCE_DIR (the source tree under test), else in the
  * source it was built from. Two results live at once. */
 static char const* font_file(char const* name)
 {

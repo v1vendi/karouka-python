@@ -8,12 +8,12 @@
  * --mem-phases calls kr_miprof_mark(phase) at each phase (looked up with dlsym, so the viewer works
  * without it); each mark writes KR_MIPROF_DIR/NN-phase.tsv with the live bytes per call site, the
  * cumulative bytes allocated per site, each heap's mimalloc pages (committed vs used, from
- * mi_heap_visit_blocks) and the loaded images, for tools/miprof.py to diff and symbolize.
+ * mi_heap_visit_blocks) and the loaded images, to diff and symbolize.
  *
  *   DYLD_INSERT_LIBRARIES=.../libkarouka_miprof.dylib KR_MIPROF_DIR=out karouka_viewer page.html \
  *       --headless --frames 1 --mem-phases
  *
- * tools/dev.sh mem --attribute does this. Diagnostic only: it slows allocation down ~10x.
+ * Diagnostic only: it slows allocation down ~10x.
  */
 
 #include <dlfcn.h>

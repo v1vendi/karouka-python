@@ -1,4 +1,4 @@
-// libkarouka's hot literals, recorded by tools/dev.sh orderfile with src/libkarouka.order;
+// libkarouka's hot literals, recorded with src/libkarouka.order;
 // don't edit by hand. Each is a literal an empty page (then each pages/demo page) read, in the order
 // it first read it. This object is the first on libkarouka's link line and ld keeps the first copy of
 // equal literals, so these lie together at the start of __TEXT,__cstring and __TEXT,__const. Literals
