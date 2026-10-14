@@ -138,8 +138,8 @@ smoke() {
     say "smoke test of $(basename "$whl")"
     tmp="$(realpath "$(mktemp -d "${TMPDIR:-/tmp}/karouka-smoke.XXXXXX")")"
     trap 'rm -rf "$tmp"' RETURN
-    mkdir -p "$tmp/pages/demo" "$tmp/app"
-    cp "$ROOT/pages/demo/demo_page.html" "$tmp/pages/demo/" && cp -R "$ROOT/pages/fonts" "$tmp/pages/"
+    mkdir -p "$tmp/app"
+    cp -R "$ROOT/examples/python_viewer" "$tmp/example"
     cat >"$tmp/app/index.html" <<'HTML'
 <!doctype html><html><head><title>smoke</title></head><body><p id="out"></p>
 <script type="text/python">
@@ -153,12 +153,12 @@ HTML
     deny="(version 1)(allow default)(deny file-read* (subpath \"$ROOT\") (subpath \"$LADYBIRD_DIR\"))"
     (cd "$tmp" && env -u KR_RESOURCE_ROOT -u PYTHONPATH -u PYTHONHOME sandbox-exec -p "$deny" \
         "$tmp/venv/bin/python" -I -m karouka --software --headless --frames 60 --size 800x600 \
-        --capture "$tmp/demo.png" "$tmp/pages/demo/demo_page.html")
+        --capture "$tmp/example.png" "$tmp/example/page.html")
     (cd "$tmp" && env -u KR_RESOURCE_ROOT -u PYTHONPATH -u PYTHONHOME sandbox-exec -p "$deny" \
         "$tmp/venv/bin/python" -I -m karouka --software --headless --frames 10 --size 800x600 "$tmp/app/index.html")
-    [[ -s "$tmp/demo.png" ]] || die "smoke: the demo page wrote no capture"
+    [[ -s "$tmp/example.png" ]] || die "smoke: the example page wrote no capture"
     [[ "$(cat "$tmp/app/ran.txt" 2>/dev/null)" == 800 ]] || die "smoke: the page's text/python didn't run"
-    echo "smoke: ok (venv install, demo page rendered, text/python ran)"
+    echo "smoke: ok (venv install, example page rendered, text/python ran)"
 }
 
 # tests/python against the build's module (not the wheel), one script at a time.

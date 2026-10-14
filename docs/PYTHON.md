@@ -111,8 +111,8 @@ reads the packaged resources; importing `_karouka` alone skips that.
 
 `./build.sh smoke` installs the wheel with pip into a fresh venv of the interpreter the module was
 built for, outside the checkout, and runs `python -I -m karouka --software --headless` from it under
-`sandbox-exec` with the checkout and the Ladybird tree unreadable: on `pages/demo/demo_page.html`,
-which must render, and on a page whose `text/python` writes a file.
+`sandbox-exec` with the checkout and the Ladybird tree unreadable: on
+`examples/python_viewer/page.html`, which must render, and on a page whose `text/python` writes a file.
 
 ### App shell
 

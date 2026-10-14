@@ -29,7 +29,7 @@ or step by step:
 | `./build.sh setup` | Clones Ladybird into `third_party/ladybird` (a blobless clone), checks out the pin, applies `patches/ladybird.patch` with `git am` as one commit, installs the toolchain |
 | `./build.sh build` | Builds the vcpkg dependencies, configures Ladybird's `Release` preset with karouka's hook, and builds `_karouka` |
 | `./build.sh wheel` | Packs `dist/karouka-<version>-cp314-cp314-macosx_<minos>_arm64.whl` (`tools/wheel.py`) |
-| `./build.sh smoke` | Installs the wheel in a fresh venv and renders a page from it with the checkout unreadable |
+| `./build.sh smoke` | Installs the wheel in a fresh venv and renders the example page from it with the checkout unreadable |
 | `./build.sh test` | Runs `tests/python/` against the build's module |
 
 The first build compiles Ladybird's libraries and its vcpkg dependencies and takes an hour or

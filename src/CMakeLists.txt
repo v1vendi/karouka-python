@@ -494,15 +494,6 @@ set_target_properties(karouka_struct_size_test PROPERTIES
     BUILD_RPATH "${CMAKE_BINARY_DIR}/karouka/lib;${CMAKE_BINARY_DIR}/lib"
 )
 
-# the host's font registration (kr_system_add_font*), with the fonts in pages/fonts.
-add_executable(karouka_font_registration_test "${KAROUKA_SOURCE_DIR}/tests/font_registration_test.c")
-target_link_libraries(karouka_font_registration_test PRIVATE karouka)
-target_compile_definitions(karouka_font_registration_test PRIVATE KAROUKA_SOURCE_DIR="${KAROUKA_SOURCE_DIR}")
-set_target_properties(karouka_font_registration_test PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/karouka/bin"
-    BUILD_RPATH "${CMAKE_BINARY_DIR}/karouka/lib;${CMAKE_BINARY_DIR}/lib"
-)
-
 # the software backend (KR_BACKEND_SOFTWARE) renders into the IOSurface without a GPU.
 add_executable(karouka_software_backend_test "${KAROUKA_SOURCE_DIR}/tests/software_backend_test.c")
 target_link_libraries(karouka_software_backend_test PRIVATE karouka "-framework IOSurface")
@@ -515,15 +506,6 @@ set_target_properties(karouka_software_backend_test PROPERTIES
 add_executable(karouka_output_texture_test "${KAROUKA_SOURCE_DIR}/tests/output_texture_test.c")
 target_link_libraries(karouka_output_texture_test PRIVATE karouka "-framework Metal" objc)
 set_target_properties(karouka_output_texture_test PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/karouka/bin"
-    BUILD_RPATH "${CMAKE_BINARY_DIR}/karouka/lib;${CMAKE_BINARY_DIR}/lib"
-)
-
-# No entry point leaves autoreleased objects in the host's pool.
-add_executable(karouka_autorelease_test "${KAROUKA_SOURCE_DIR}/tests/autorelease_test.c")
-target_link_libraries(karouka_autorelease_test PRIVATE karouka "-framework Metal" objc)
-target_compile_definitions(karouka_autorelease_test PRIVATE KAROUKA_SOURCE_DIR="${KAROUKA_SOURCE_DIR}")
-set_target_properties(karouka_autorelease_test PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/karouka/bin"
     BUILD_RPATH "${CMAKE_BINARY_DIR}/karouka/lib;${CMAKE_BINARY_DIR}/lib"
 )

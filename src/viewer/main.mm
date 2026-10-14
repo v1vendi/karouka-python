@@ -1144,7 +1144,7 @@ std::vector<PageEntry> page_list()
     return pages;
 }
 
-// A stand-in game for pages/demo/hud_page.html, which has no script: its 20 data-bind-* values (16
+// A stand-in game for a data-bound HUD page without a script: its 20 data-bind-* values (16
 // texts, 4 meter widths) read model paths this sets with kr_binding_set_* before every advance. Each
 // value is a function of the game frame alone, the same ones Tessera's copy of the page computes in
 // requestAnimationFrame, so captures and bench runs are deterministic. Paths resolve once per view.

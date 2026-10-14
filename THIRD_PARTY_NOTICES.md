@@ -23,8 +23,7 @@ vcpkg manifest, and Ladybird's `Base/res` (less its fonts) in `karouka/res/`:
 | simdutf | `libsimdutf` | Apache 2.0 or MIT |
 | LibTomMath | `libtommath` | LibTom License (Unlicense) |
 
-The repository's test fonts in `pages/fonts/` (Noto Sans, Noto Sans Arabic, Noto Sans Devanagari)
-are under the SIL Open Font License 1.1.
+The repository's test font `pages/fonts/NotoSans-Regular.ttf` is under the SIL Open Font License 1.1.
 
 The full license text of each vcpkg library is in a build's
 `third_party/ladybird/Build/release/vcpkg_installed/arm64-osx-dynamic/share/<port>/copyright`.

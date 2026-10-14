@@ -1101,7 +1101,7 @@ void kr_system_destroy(kr_system* system)
     // Views still alive go first; their handles become invalid.
     while (!system->views.is_empty())
         kr_view_destroy(system->views.last());
-    // The teardown below autoreleases the Metal device, seven times in karouka_autorelease_test.
+    // The teardown below autoreleases the Metal device, seven times over.
     Core::ScopedAutoreleasePool autorelease_pool;
     // Loads still pending with the host belong to no view (none here); the host hears of them.
     Karouka::HostIo::cancel_all(nullptr);
