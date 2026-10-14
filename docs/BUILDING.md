@@ -28,7 +28,8 @@ or step by step:
 | --- | --- |
 | `./build.sh setup` | Clones Ladybird into `third_party/ladybird` (a blobless clone), checks out the pin, applies `patches/ladybird.patch` with `git am` as one commit, installs the toolchain |
 | `./build.sh build` | Builds the vcpkg dependencies, configures Ladybird's `Release` preset with karouka's hook, and builds `_karouka` |
-| `./build.sh wheel` | Packs `dist/karouka-<version>-cp314-cp314-macosx_<minos>_arm64.whl` (`tools/wheel.py`) |
+| `./build.sh wheel` | Packs `dist/karouka-<version>-cp314-cp314-macosx_<minos>_arm64.whl` (`tools/wheel.py`), then runs `portable` on it |
+| `./build.sh portable` | Checks that the wheel runs on every Mac its tag claims (§ Portability) |
 | `./build.sh smoke` | Installs the wheel in a fresh venv and renders the example page from it with the checkout unreadable |
 | `./build.sh test` | Runs `tests/python/` against the build's module |
 
@@ -74,12 +75,40 @@ git format-patch -1 --stdout --zero-commit > ../../patches/ladybird.patch
 
 Then set `LADYBIRD_PIN` in `build.sh` to the new base commit (`git rev-parse HEAD~1`).
 
+## Portability
+
+A wheel must run on any Apple-silicon Mac with the macOS its tag names, not just the build machine:
+
+- **CPU:** `build.sh` configures with `ENABLE_CI_BASELINE_CPU=ON`, so Ladybird and karouka compile
+  for the Apple M1 (`-mcpu=apple-m1`, Rust `target-cpu=apple-m1`) instead of the build machine's
+  CPU (`-march=native`). A wheel built on an M2 or later Mac could otherwise use BF16, I8MM or SME
+  instructions and crash an M1 with an illegal instruction. vcpkg builds its libraries without CPU
+  flags. `build.sh build` stops if the build directory isn't configured that way.
+- **macOS:** Ladybird and its vcpkg libraries target macOS 14 (`minos` 14.0), which becomes the
+  wheel's `macosx_14_0` tag.
+- **System libraries:** the build uses Homebrew's clang with its own libc++ headers, but links
+  macOS's `/usr/lib/libc++`. Those headers don't mark which symbols need a newer macOS, so the
+  binaries could import a libc++ symbol that macOS 14 lacks.
+
+`tools/check_portability.py WHEEL` (run by `./build.sh wheel` and `./build.sh portable`) checks
+each of these on the packed wheel:
+
+1. every binary's `minos` is no newer than the tag;
+2. every non-weak symbol the binaries import from libSystem, libc++, libobjc and the frameworks is
+   in the tag's macOS SDK (`MacOSX14.sdk`; skipped when it isn't installed, or failed with
+   `--require-sdk`);
+3. the `_karouka` module has no instruction the M1 lacks. vcpkg's dylibs aren't scanned: codecs
+   carry newer instructions behind runtime CPU checks.
+
 ## Releasing a wheel
 
 - Build in a neutral directory, such as a fresh clone under `/tmp`. The module keeps source file
   paths as strings (assertion messages and the build's resource directory), so they show the
   build machine's paths. The installed package points the engine at its own `res/`, so the
   build's paths are never read.
-- Run `./build.sh test` and `./build.sh smoke`, then attach `dist/*.whl` to a GitHub release.
+- Have `MacOSX14.sdk` installed (some Command Line Tools releases include it; otherwise take it
+  from an Xcode 15), run
+  `python3 tools/check_portability.py --require-sdk dist/*.whl`, `./build.sh test` and
+  `./build.sh smoke`, then attach `dist/*.whl` to a GitHub release.
 - The wheel's tag names the CPython it was built for (`cp314`) and the oldest macOS its binaries
   allow (`macosx_14_0`).

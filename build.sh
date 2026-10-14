@@ -2,7 +2,7 @@
 # Builds karouka's Python wheel from source: Ladybird at its pinned commit plus
 # patches/ladybird.patch, karouka's src/ built into the _karouka module, packed by tools/wheel.py.
 #
-#   ./build.sh [setup|build|wheel|smoke|test|all]...     (default: all = setup build wheel smoke)
+#   ./build.sh [setup|build|wheel|portable|smoke|test|all]...   (default: all = setup build wheel smoke)
 #
 # Environment:
 #   KAROUKA_PYTHON   the CPython 3.14 (with the GIL) to build for   (default: python3.14 on PATH)
@@ -104,15 +104,22 @@ build() {
     export PATH="$VCPKG_ROOT:$PATH"
 
     say "configure"
+    # ENABLE_CI_BASELINE_CPU compiles Ladybird and karouka for the Apple M1 (-mcpu=apple-m1, Rust
+    # target-cpu=apple-m1) instead of the build machine's CPU (-march=native), so the wheel runs on
+    # every Apple-silicon Mac. vcpkg builds its libraries without CPU flags.
     if [[ ! -f "$BUILD/build.ninja" ]]; then
         cmake --preset Release -S "$LADYBIRD_DIR" -B "$BUILD" \
             -DCMAKE_C_COMPILER="$CC" -DCMAKE_CXX_COMPILER="$CXX" \
             -DBUILD_TESTING=OFF -DENABLE_CRANELIFT_JIT=OFF \
             -DRUST_CARGO="$rust/cargo" -DRUST_RUSTC="$rust/rustc" \
+            -DENABLE_CI_BASELINE_CPU=ON \
             -DKAROUKA_SOURCE_DIR="$ROOT" -DKAROUKA_PYTHON="$python"
     else
-        cmake -S "$LADYBIRD_DIR" -B "$BUILD" -DKAROUKA_SOURCE_DIR="$ROOT" -DKAROUKA_PYTHON="$python" >/dev/null
+        cmake -S "$LADYBIRD_DIR" -B "$BUILD" -DENABLE_CI_BASELINE_CPU=ON \
+            -DKAROUKA_SOURCE_DIR="$ROOT" -DKAROUKA_PYTHON="$python" >/dev/null
     fi
+    grep -qx 'ENABLE_CI_BASELINE_CPU:BOOL=ON' "$BUILD/CMakeCache.txt" ||
+        die "the build isn't configured for the M1 baseline CPU (ENABLE_CI_BASELINE_CPU)"
 
     say "build _karouka with $JOBS jobs"
     # A generated header some sources include without an ordering dependency: make it first.
@@ -121,11 +128,21 @@ build() {
     ls -l "$KR_BUILD"/lib/_karouka.*.so
 }
 
-# dist/karouka-<version>-cp314-cp314-macosx_<minos>_arm64.whl
+# dist/karouka-<version>-cp314-cp314-macosx_<minos>_arm64.whl, then tools/check_portability.py on it.
 wheel() {
     say "wheel"
     python3 "$ROOT/tools/wheel.py" --build "$KR_BUILD" --resources "$LADYBIRD_DIR/Base/res" --out "$DIST" \
         --forbid "$ROOT" --forbid "$LADYBIRD_DIR"
+    portable
+}
+
+# The wheel runs on every Mac its tag claims: minos, system symbols, no post-M1 instructions.
+portable() {
+    local whl
+    whl="$(ls "$DIST"/karouka-*.whl 2>/dev/null | head -1)" || true
+    [[ -n "$whl" ]] || die "no wheel in $DIST; run ./build.sh wheel first"
+    say "portability of $(basename "$whl")"
+    python3 "$ROOT/tools/check_portability.py" "$whl"
 }
 
 # Installs the wheel into a fresh venv outside the checkout and runs a page from it with the checkout
@@ -186,9 +203,10 @@ for step in "$@"; do
         build) build ;;
         wheel) wheel ;;
         smoke) smoke ;;
+        portable) portable ;;
         test) test_python ;;
         all) setup && build && wheel && smoke ;;
         -h|--help|help) sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
-        *) die "unknown step: $step (setup, build, wheel, smoke, test, all)" ;;
+        *) die "unknown step: $step (setup, build, wheel, portable, smoke, test, all)" ;;
     esac
 done
