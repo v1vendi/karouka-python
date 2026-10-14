@@ -1,0 +1,94 @@
+<!doctype html>
+<title>constructors</title>
+<div id="d" data-foo-bar="x" class="a">hi</div>
+<form id="f"><input name="q"></form>
+<pre id="results">{}</pre>
+<script type="text/python">
+# IDL constructors, static members, dictionary arguments, [CreatesPromise] operations,
+# named getters and [PutForwards], called from the page's Python. test_constructors.py reads
+# #results.
+import asyncio
+import json
+
+values = {}
+errors = {}
+
+
+def record(name, thunk):
+    try:
+        values[name] = thunk()
+    except Exception as error:
+        errors[name] = f"{type(error).__name__}: {error}"
+
+
+def publish():
+    document.getElementById("results").textContent = json.dumps({"values": values, "errors": errors})
+
+
+async def main():
+    # Constructors, with dictionary arguments and their defaults.
+    event = window.Event("ping", {"bubbles": True, "cancelable": True})
+    values["Event"] = [type(event).__name__, event.type, event.bubbles, event.cancelable, event.isTrusted]
+    plain = Event("plain")
+    values["Event defaults"] = [plain.bubbles, plain.cancelable, plain.composed]
+    seen = []
+    document.body.addEventListener("ping", lambda e: seen.append(e.target.id or e.target.tagName))
+    document.getElementById("d").dispatchEvent(event)
+    values["dispatched"] = seen
+    values["CustomEvent.detail"] = CustomEvent("c", {"detail": 5}).detail
+    values["MouseEvent"] = [MouseEvent("click", {"clientX": 7}).clientX, isinstance(MouseEvent("click"), UIEvent)]
+    url = URL("b/c?x=1#h", "https://example.com/a/")
+    values["URL"] = [type(url).__name__, url.href, url.searchParams.get("x")]
+    record("URL invalid", lambda: URL("nope"))
+    blob = Blob(["ab", "cd", Blob(["ef"])], {"type": "text/plain"})
+    values["Blob"] = [type(blob).__name__, blob.size, blob.type]
+    values["Blob()"] = Blob().size
+    values["Blob text"] = await blob.text()
+    values["Text"] = Text("t").data
+    values["DocumentFragment"] = DocumentFragment().childNodes.length
+    values["AbortController"] = AbortController().signal.aborted
+    record("Node()", lambda: Node())
+
+    # Static operations.
+    values["URL.canParse"] = [URL.canParse("https://x"), URL.canParse("nope")]
+    values["URL.parse"] = URL.parse("https://x/y").pathname
+    values["AbortSignal.abort"] = AbortSignal.abort().aborted
+
+    # [CreatesPromise] operations: awaitable.
+    response = Response('{"a": 1}', {"headers": {"Content-Type": "application/json"}})
+    values["Response.json"] = (await response.json()).a
+    values["Response.text"] = await Response("body text").text()
+    values["Request.text"] = await Request("x.txt", {"method": "POST", "body": "posted"}).text()
+    consumed = Response("once")
+    await consumed.text()
+    try:
+        await consumed.text()
+        values["consumed body"] = "resolved"
+    except Exception as error:
+        values["consumed body"] = type(error).__name__
+
+    # Named getters and [PutForwards].
+    div = document.getElementById("d")
+    values["dataset"] = div.dataset["fooBar"]
+    record("dataset missing", lambda: div.dataset["nope"])
+    values["forms named"] = document.forms["f"].id
+    values["form named"] = document.forms[0]["q"].name
+    values["children[0]"] = document.body.children[0].id
+    div.classList = "x y"
+    values["classList="] = div.className
+    div.style = "color: red"
+    values["style="] = div.style.color
+    values["done"] = True
+    publish()
+
+
+async def run():
+    try:
+        await main()
+    except Exception as error:
+        errors["main"] = f"{type(error).__name__}: {error}"
+        publish()
+        raise
+
+asyncio.get_running_loop().create_task(run())
+</script>

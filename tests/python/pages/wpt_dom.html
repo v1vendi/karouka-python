@@ -1,0 +1,197 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>wpt dom in python</title>
+<!-- Python ports of WPT dom/ testharness tests (subsets, the assertions kept), run against the
+     generated bindings. Each test() writes "PASS name" or "FAIL name: why" into #results, which
+     tests/python/test_bindings.py reads. Sources: dom/nodes/Node-appendChild.html,
+     Node-insertBefore.html, Node-textContent.html, Element-classlist.html,
+     Document-createElement.html, Node-cloneNode.html, Element-matches.html. -->
+<div id="log"></div>
+<pre id="results"></pre>
+<script type="text/python">
+results = []
+
+
+class AssertionFailure(Exception):
+    pass
+
+
+def test(function, name):
+    try:
+        function()
+        results.append(f"PASS {name}")
+    except Exception as e:
+        results.append(f"FAIL {name}: {type(e).__name__}: {e}")
+
+
+def assert_equals(actual, expected, message=""):
+    if actual != expected:
+        raise AssertionFailure(f"{actual!r} != {expected!r} {message}")
+
+
+def assert_true(value, message=""):
+    if value is not True:
+        raise AssertionFailure(f"expected True, got {value!r} {message}")
+
+
+def assert_false(value, message=""):
+    if value is not False:
+        raise AssertionFailure(f"expected False, got {value!r} {message}")
+
+
+def assert_throws_dom(name, function):
+    try:
+        function()
+    except DOMException as e:
+        if e.name != name:
+            raise AssertionFailure(f"threw {e.name}, not {name}")
+        return
+    raise AssertionFailure(f"did not throw {name}")
+
+
+def assert_throws_js(kind, function):
+    try:
+        function()
+    except kind:
+        return
+    raise AssertionFailure(f"did not throw {kind.__name__}")
+
+
+from _karouka import DOMException
+
+# ---- dom/nodes/Node-appendChild.html ----
+
+def append_child_wrong_type():
+    for node in (document.createTextNode("Foo"), document.createComment("Foo")):
+        assert_throws_dom("HierarchyRequestError", lambda: node.appendChild(document.createTextNode("fail")))
+    assert_throws_js(TypeError, lambda: document.body.appendChild(None))
+    assert_throws_js(TypeError, lambda: document.body.appendChild("x"))
+test(append_child_wrong_type, "Node-appendChild: appending to a leaf node or a non-node")
+
+
+def append_child_moves():
+    frag = document.createDocumentFragment()
+    a, b = document.createElement("a"), document.createElement("b")
+    frag.appendChild(a)
+    frag.appendChild(b)
+    div = document.createElement("div")
+    assert_equals(div.appendChild(frag), frag)
+    assert_equals(div.childNodes.length, 2)
+    assert_equals(frag.childNodes.length, 0)
+    assert_true(div.firstChild is a)
+    assert_true(div.lastChild is b)
+test(append_child_moves, "Node-appendChild: a DocumentFragment's children move")
+
+# ---- dom/nodes/Node-insertBefore.html ----
+
+def insert_before():
+    parent = document.createElement("div")
+    child = document.createElement("p")
+    parent.appendChild(child)
+    new = document.createElement("span")
+    assert_true(parent.insertBefore(new, child) is new)
+    assert_true(parent.firstChild is new)
+    assert_true(new.nextSibling is child)
+    assert_throws_dom("NotFoundError", lambda: parent.insertBefore(document.createElement("i"), document.createElement("b")))
+    assert_throws_dom("HierarchyRequestError", lambda: new.insertBefore(parent, None))
+    parent.insertBefore(document.createElement("em"), None)
+    assert_equals(parent.lastChild.localName, "em")
+test(insert_before, "Node-insertBefore: placement and errors")
+
+# ---- dom/nodes/Node-textContent.html ----
+
+def text_content():
+    element = document.createElement("div")
+    element.innerHTML = "<p>a<b>b</b></p>c"
+    assert_equals(element.textContent, "abc")
+    element.textContent = "x"
+    assert_equals(element.childNodes.length, 1)
+    assert_equals(element.firstChild.nodeType, Node.TEXT_NODE)
+    element.textContent = ""
+    assert_equals(element.childNodes.length, 0)
+    element.textContent = None
+    assert_equals(element.textContent, "")
+    assert_equals(document.textContent, None)
+    text = document.createTextNode("t")
+    text.textContent = "u"
+    assert_equals(text.data, "u")
+test(text_content, "Node-textContent: get and set on elements, documents and text")
+
+# ---- dom/nodes/Element-classlist.html ----
+
+def class_list():
+    element = document.createElement("div")
+    element.className = "a b"
+    list_ = element.classList
+    assert_true(element.classList is list_, "[SameObject]")
+    assert_equals(list_.length, 2)
+    assert_equals(list_[0], "a")
+    assert_true(list_.contains("b"))
+    list_.add("c", "d")
+    assert_equals(element.className, "a b c d")
+    list_.remove("a")
+    assert_equals(list_.value, "b c d")
+    assert_false(list_.toggle("b"))
+    assert_true(list_.toggle("b"))
+    assert_equals(list_.value, "c d b")
+    assert_true(list_.replace("b", "z"))
+    assert_equals(element.getAttribute("class"), "c d z")
+    assert_throws_dom("SyntaxError", lambda: list_.add(""))
+    assert_throws_dom("InvalidCharacterError", lambda: list_.add("a b"))
+    assert_equals(list(list_), ["c", "d", "z"])
+test(class_list, "Element-classlist: DOMTokenList members and errors")
+
+# ---- dom/nodes/Document-createElement.html ----
+
+def create_element():
+    for name, interface in (("div", HTMLDivElement), ("span", HTMLSpanElement), ("foo", HTMLUnknownElement), ("my-el", HTMLElement)):
+        element = document.createElement(name)
+        assert_true(isinstance(element, interface), name)
+        assert_equals(element.localName, name)
+        assert_equals(element.namespaceURI, "http://www.w3.org/1999/xhtml")
+    assert_equals(document.createElement("DIV").localName, "div")
+    assert_throws_dom("InvalidCharacterError", lambda: document.createElement(""))
+    assert_throws_dom("InvalidCharacterError", lambda: document.createElement("1foo"))
+test(create_element, "Document-createElement: interfaces, names and errors")
+
+# ---- dom/nodes/Node-cloneNode.html ----
+
+def clone_node():
+    element = document.createElement("div")
+    element.setAttribute("id", "x")
+    element.appendChild(document.createElement("span"))
+    shallow = element.cloneNode()
+    deep = element.cloneNode(True)
+    assert_equals(shallow.id, "x")
+    assert_equals(shallow.childNodes.length, 0)
+    assert_equals(deep.childNodes.length, 1)
+    assert_false(deep.firstChild is element.firstChild)
+    assert_true(deep.isEqualNode(element))
+test(clone_node, "Node-cloneNode: shallow and deep")
+
+# ---- dom/nodes/Element-matches.html ----
+
+def matches():
+    element = document.createElement("p")
+    element.className = "k"
+    document.body.appendChild(element)
+    assert_true(element.matches("body > p.k"))
+    assert_false(element.matches("div"))
+    assert_true(element.closest("body") is document.body)
+    assert_throws_dom("SyntaxError", lambda: element.matches("!!"))
+    element.remove()
+    assert_equals(element.parentNode, None)
+test(matches, "Element-matches: selectors, closest and errors")
+
+# ---- interface objects and constants ----
+
+def interfaces():
+    assert_true(window.HTMLDivElement is HTMLDivElement)
+    assert_equals(Node.ELEMENT_NODE, 1)
+    assert_equals(document.body.DOCUMENT_POSITION_FOLLOWING, 4)
+    assert_true(isinstance(document, window.Document))
+    assert_equals(document.compatMode, "CSS1Compat")
+test(interfaces, "interface objects on window, constants, enumerations")
+
+document.getElementById("results").textContent = "\n".join(results)
+</script>

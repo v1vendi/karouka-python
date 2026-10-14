@@ -1,0 +1,10 @@
+<!doctype html>
+<title>globals</title>
+<pre id="globals"></pre>
+<script>
+// Every interface object JS has on window (a function named like an interface), for
+// tests/python/test_bindings.py to compare with what Python reaches through window.
+document.getElementById("globals").textContent = Object.getOwnPropertyNames(window)
+    .filter(name => /^[A-Z]/.test(name) && typeof window[name] === "function")
+    .sort().join("\n");
+</script>

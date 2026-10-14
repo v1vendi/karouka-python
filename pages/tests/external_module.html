@@ -1,0 +1,17 @@
+<!doctype html>
+<html>
+<head>
+<meta name="karouka-check-title" content="^external module ok$">
+<title>external module pending</title>
+<!-- a module script from a file: URL. A module fetch is a "cors"
+     request, and a file: page's origin was opaque, so Fetch refused it ("cors"
+     mode needs an HTTP(S) URL), the element's result was null and the script
+     never ran; inline modules and classic scripts ran. Now file:
+     URLs share one tuple origin (Engine.cpp, kr_system_create2). The module
+     imports another statically and again dynamically, both from file: URLs. -->
+<script type="module" src="external_module.js"></script>
+</head>
+<body>
+<p id="status">external module did not run</p>
+</body>
+</html>

@@ -1,0 +1,95 @@
+<!doctype html>
+<!-- text/python against the DOM, driven by tests/python/test_dom.py (Python runs only under
+     the _karouka module, so this page lives here, not in pages/tests). Python builds a list,
+     listens to clicks on #go next to a JS listener (preventDefault keeps the link from navigating),
+     removes a listener, and raises from a script and from a listener; JS records what it sees in
+     #log. The title ends "python ok" once every Python step passed. -->
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="karouka-check-title" content="^dom: python ok$">
+<title>dom: pending</title>
+<style>
+  body { margin: 0; font: 16px sans-serif; }
+  #go { position: absolute; left: 0; top: 0; width: 200px; height: 100px; display: block; background: #8cf; }
+  #content { position: absolute; top: 120px; }
+</style>
+</head>
+<body>
+<a id="go" href="#navigated">Go</a>
+<div id="content">
+  <ul id="list"><li id="doomed">doomed</li></ul>
+  <button id="boom">boom</button>
+  <p id="log"></p>
+</div>
+<script>
+function log(entry) { document.getElementById("log").textContent += entry + ";"; }
+window.onerror = (message) => { log("onerror:" + message); return true; };
+// Registered before Python's: it runs first and sees no preventDefault yet.
+document.getElementById("go").addEventListener("click", (e) => log("js-before:" + e.defaultPrevented));
+</script>
+<script type="text/python" id="first">
+import helper
+
+assert document.currentScript.id == "first", document.currentScript
+assert document.currentScript.getAttribute("type") == "text/python"
+assert window.document is document
+assert window.innerWidth == 800, window.innerWidth
+
+# DOM edits: create, append, insert, remove, attributes, classes and style.
+ul = document.getElementById("list")
+for i in range(3):
+    li = document.createElement("li")
+    li.textContent = helper.item_text(i)
+    li.classList.add("item", f"n{i}")
+    li.setAttribute("data-index", str(i))
+    ul.appendChild(li)
+first = document.createElement("li")
+first.id = "first-item"
+first.appendChild(document.createTextNode("first"))
+ul.insertBefore(first, ul.firstChild)
+ul.removeChild(document.getElementById("doomed"))
+ul.lastChild.style.color = "rgb(255, 0, 0)"
+ul.lastChild.style.setProperty("font-weight", "bold")
+items = document.querySelectorAll("li.item")
+assert len(items) == 3 and items[1].textContent == "item 1", [n.textContent for n in items]
+assert "n2" in ul.lastChild.classList and ul.lastChild.classList.toggle("n2") is False
+assert ul.lastChild.style.color == "rgb(255, 0, 0)", ul.lastChild.style.cssText
+assert ul.firstChild is document.getElementById("first-item")
+assert ul.childNodes.length == 4
+
+clicks = []
+
+def on_click(e):
+    e.preventDefault()
+    clicks.append(e.type)
+    assert e.currentTarget is document.getElementById("go")
+    document.getElementById("log").textContent += f"py:{e.type}:{type(e).__name__}:{e.clientX > 0};"
+
+def removed(e):
+    document.getElementById("log").textContent += "removed-listener-ran;"
+
+go = document.getElementById("go")
+go.addEventListener("click", removed)
+go.addEventListener("click", on_click)
+go.removeEventListener("click", removed)
+
+def explode(e):
+    raise ValueError("listener boom")
+
+document.getElementById("boom").addEventListener("click", explode)
+document.title = "dom: python ok"
+</script>
+<script>
+document.getElementById("go").addEventListener("click", (e) => {
+  log("js-after:" + e.defaultPrevented);
+  setTimeout(() => log("hash:" + location.hash), 0);
+});
+</script>
+<script type="text/python" id="second">
+assert document.currentScript.id == "second"
+assert "clicks" in globals()  # one __main__ per document
+raise RuntimeError("script boom")
+</script>
+</body>
+</html>

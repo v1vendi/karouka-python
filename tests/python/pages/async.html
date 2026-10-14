@@ -1,0 +1,122 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>async</title>
+<!-- tests/python/test_async.py: asyncio on the host clock, Promises, JS values both ways. -->
+<button id="button">button</button>
+<pre id="results">{}</pre>
+<pre id="jsresults">{}</pre>
+<script>
+function jsMul(a, b) { return a * b; }
+function jsThrows() { throw new RangeError("from JS"); }
+</script>
+<script type="text/python">
+import asyncio
+import json
+
+import _karouka
+
+loop = asyncio.get_running_loop()
+results = {}
+
+
+def publish():
+    document.getElementById("results").textContent = json.dumps(results)
+
+
+async def sleeper():
+    start = loop.time()
+    await asyncio.sleep(1)
+    results["sleep"] = [start * 1000, loop.time() * 1000]
+    quarters = []
+    for _ in range(4):
+        await asyncio.sleep(0.25)
+        quarters.append(loop.time() * 1000)
+    results["quarters"] = quarters
+    publish()
+
+
+def text_of(response):
+    # Body.text() is [CreatesPromise], which the generator doesn't bind yet: call JS's own.
+    return js.Reflect.apply(js.Response.prototype.text, response, [])
+
+
+async def fetches():
+    response = await window.fetch("async-data.txt")
+    results["fetch_status"] = response.status
+    results["fetch_text"] = await text_of(response)
+    response = await js.fetch("async-data.txt")
+    results["js_fetch_text"] = await text_of(response)
+    try:
+        await window.fetch("no-such-file.txt")
+        results["fetch_missing"] = "resolved"
+    except _karouka.JSError as error:
+        results["fetch_missing"] = str(error)
+    try:
+        await js.Promise.reject(js.Error.new("boom"))
+        results["rejected"] = "resolved"
+    except _karouka.JSError as error:
+        results["rejected"] = [str(error), error.value.message]
+    results["fetch_done"] = True
+    publish()
+
+
+# Python calls JS.
+results["js_mul"] = js.jsMul(6, 7)
+try:
+    js.jsThrows()
+except _karouka.JSError as error:
+    results["js_throws"] = str(error)
+results["json"] = js.JSON.stringify({"a": [1, 2.5, "x", None, True]})
+results["parse"] = js.JSON.parse('{"n": 3, "list": [1, 2]}')["list"][1]
+results["array_len"] = len(js.Array.new(1, 2, 3))
+
+# JS calls Python.
+def py_add(a, b):
+    return a + b
+
+
+async def py_async(x):
+    await asyncio.sleep(0.1)
+    return x * 2
+
+
+def py_raises():
+    raise ValueError("from Python")
+
+
+js.pyAdd = py_add
+js.pyAsync = py_async
+js.pyRaises = py_raises
+results["roundtrip"] = js.pyAdd is py_add
+
+# Callback-typed IDL members: an event handler attribute and queueMicrotask.
+clicks = []
+button = document.getElementById("button")
+button.onclick = lambda event: clicks.append(event.type)
+button.click()
+results["onclick"] = clicks
+results["onclick_get"] = button.onclick is not None
+microtasks = []
+window.queueMicrotask(lambda: microtasks.append("ran"))
+results["microtask_queued"] = microtasks == []
+
+
+async def after_microtask():
+    results["microtask"] = microtasks
+    publish()
+
+asyncio.create_task(sleeper())
+asyncio.create_task(fetches())
+asyncio.create_task(after_microtask())
+publish()
+</script>
+<script>
+var out = {};
+out.add = pyAdd(2, 3);
+try { pyRaises(); } catch (e) { out.raises = String(e); }
+pyAsync(21).then(function (v) {
+    out.async = v;
+    document.getElementById("jsresults").textContent = JSON.stringify(out);
+});
+document.getElementById("jsresults").textContent = JSON.stringify(out);
+</script>

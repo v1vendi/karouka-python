@@ -1,0 +1,69 @@
+<!doctype html>
+<!-- A counter: static HTML and CSS, with its behaviour in a <script type="text/python">. -->
+<html>
+<head>
+<meta charset="utf-8">
+<title>Counter</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+  <h1>Counter</h1>
+  <div id="value">0</div>
+  <div id="ring"><div id="fill"></div></div>
+  <div class="row">
+    <button id="dec">−</button>
+    <button id="reset" class="ghost">Reset</button>
+    <button id="inc">+</button>
+  </div>
+  <div class="row" id="steps">
+    <button class="step active" data-step="1">×1</button>
+    <button class="step" data-step="5">×5</button>
+    <button class="step" data-step="10">×10</button>
+  </div>
+  <p id="history"></p>
+</main>
+<script type="text/python">
+GOAL = 50
+count, step, history = 0, 1, []
+el = document.getElementById
+
+
+def render():
+    value = el("value")
+    value.textContent = str(count)
+    value.classList.toggle("negative", count < 0)
+    el("fill").style.width = f"{min(abs(count), GOAL) * 100 / GOAL:.0f}%"
+    el("history").textContent = "  ".join(history[-8:]) or "Press + or −"
+
+
+def change(delta):
+    global count
+    count += delta
+    history.append(f"{delta:+d}")
+    render()
+
+
+def reset(event):
+    global count
+    count = 0
+    history.clear()
+    render()
+
+
+def pick_step(event):
+    global step
+    step = int(event.currentTarget.getAttribute("data-step"))
+    for button in document.querySelectorAll(".step"):
+        button.classList.toggle("active", button is event.currentTarget)
+
+
+el("inc").addEventListener("click", lambda e: change(step))
+el("dec").addEventListener("click", lambda e: change(-step))
+el("reset").addEventListener("click", reset)
+for button in document.querySelectorAll(".step"):
+    button.addEventListener("click", pick_step)
+render()
+</script>
+</body>
+</html>

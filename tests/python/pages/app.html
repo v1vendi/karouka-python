@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>app</title>
+<style>
+body { margin: 0; }
+#go { position: absolute; left: 0; top: 0; width: 100px; height: 50px; }
+</style>
+</head>
+<body>
+<button id="go">Go</button>
+<script type="text/python">
+# tests/python/test_app.py: clicks, keys and resizes reach the page; the window's title follows.
+clicks = 0
+keys = []
+
+
+def show():
+    document.title = f"clicks={clicks} keys={''.join(keys)} width={window.innerWidth}"
+
+
+def on_click(e):
+    global clicks
+    clicks += 1
+    show()
+
+
+def on_key(e):
+    keys.append(e.key)
+    show()
+
+
+document.getElementById("go").addEventListener("click", on_click)
+document.addEventListener("keydown", on_key)
+window.addEventListener("resize", lambda e: show())
+show()
+</script>
+</body>
+</html>

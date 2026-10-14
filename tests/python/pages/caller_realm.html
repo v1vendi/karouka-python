@@ -1,0 +1,180 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>caller realm</title>
+<!-- tests/python/test_caller_realm.py: every bound [NeedsCallerRealm] member, called from Python,
+     where no JS function is running. Each outcome goes into #results by its report name. -->
+<pre id="results">{}</pre>
+<script>
+window.XPy = class extends HTMLElement {};
+</script>
+<script type="text/python">
+import asyncio
+import json
+import sys
+
+import _karouka
+
+results = {}
+values = {}
+
+
+def publish():
+    document.getElementById("results").textContent = json.dumps({"results": results, "values": values})
+
+
+def outcome(member, error):
+    if isinstance(error, NotImplementedError):
+        results[member] = "unbound"
+    else:
+        results[member] = f"{type(error).__name__}: {error}"
+
+
+def call(member, thunk):
+    # A crash in a member's C++ ends the process: the log's last line names the member.
+    print(f"caller_realm: {member}", file=sys.stderr, flush=True)
+    try:
+        value = thunk()
+    except Exception as error:
+        outcome(member, error)
+        return None
+    results[member] = "ok"
+    return value
+
+
+async def call_async(member, thunk):
+    print(f"caller_realm: {member}", file=sys.stderr, flush=True)
+    try:
+        value = await thunk()
+    except Exception as error:
+        outcome(member, error)
+        return None
+    results[member] = "ok"
+    return value
+
+
+def setter(member, target, name, value):
+    call(f"{member}=", lambda: setattr(target, name, value))
+
+
+async def main():
+    location = window.location
+
+    # Location: the getters, then setters that stay in this document (fragment navigations; on a
+    # file: URL the protocol, host, hostname and port setters keep the URL, and the fragment).
+    for name in ("href", "origin", "protocol", "host", "hostname", "port", "pathname", "search", "hash"):
+        values[f"location.{name}"] = call(f"Location.{name}", lambda: getattr(location, name))
+    setter("Location.hash", location, "hash", "h1")
+    values["hash after hash="] = location.hash
+    setter("Location.href", location, "href", "#h2")
+    values["hash after href="] = location.hash
+    call("Location.assign/1", lambda: location.assign("#h3"))
+    values["hash after assign"] = location.hash
+    call("Location.replace/1", lambda: location.replace("#h4"))
+    values["hash after replace"] = location.hash
+    setter("Location.protocol", location, "protocol", location.protocol)
+    setter("Location.host", location, "host", location.host)
+    setter("Location.hostname", location, "hostname", location.hostname)
+    setter("Location.port", location, "port", "")
+    setter("Location.pathname", location, "pathname", location.pathname)
+    setter("Location.search", location, "search", location.search)
+    values["hash after setters"] = location.hash
+
+    # Navigation: a navigate event's intercept() and destination, and the current entry's state.
+    def on_navigate(event):
+        window.navigation.removeEventListener("navigate", on_navigate)
+        values["destination state"] = call("NavigationDestination.getState/0", lambda: event.destination.getState())
+        call("NavigateEvent.intercept/1", lambda: event.intercept())
+    window.navigation.addEventListener("navigate", on_navigate)
+    location.hash = "nav"
+    values["entry state"] = call("NavigationHistoryEntry.getState/0", lambda: window.navigation.currentEntry.getState())
+
+    # History.
+    call("History.pushState/3", lambda: window.history.pushState({"a": 1}, "", "#pushed"))
+    values["hash after pushState"] = location.hash
+    values["state after pushState"] = window.history.state.a
+    call("History.replaceState/3", lambda: window.history.replaceState(2, ""))
+    values["state after replaceState"] = window.history.state
+
+    # postMessage: Window's and a MessageChannel's, delivered as tasks.
+    messages = []
+    window.addEventListener("message", lambda event: messages.append(event.data))
+    call("Window.postMessage/2", lambda: window.postMessage("to window"))
+    call("Window.postMessage/3", lambda: window.postMessage("to window, origin", "*"))
+    channel = js.MessageChannel.new()
+    channel.port2.addEventListener("message", lambda event: messages.append(event.data))
+    channel.port2.start()
+    call("MessagePort.postMessage/2(message, options)", lambda: channel.port1.postMessage("to port", {"transfer": []}))
+    call("MessagePort.postMessage/2(message, transfer)", lambda: channel.port1.postMessage("to port, transfer", []))
+    for _ in range(20):
+        if len(messages) >= 4:
+            break
+        await asyncio.sleep(0.05)
+    values["messages"] = sorted(messages)
+
+    # Fetch: Window.fetch (an override), Request/Response clone() and the Body methods.
+    response = await call_async("Window.fetch/2", lambda: window.fetch("async-data.txt"))
+    values["fetch status"] = response.status if response is not None else None
+    request = js.Request.new("async-data.txt")
+    values["request clone url"] = call("Request.clone/0", lambda: request.clone().url)
+    values["response clone status"] = call("Response.clone/0", lambda: js.Response.new("body").clone().status)
+    # Each Body method gets a body it can read: JSON for json(), a form for formData().
+    bodies = {"json": ('{"a": 1}', "application/json"), "formData": ("a=1", "application/x-www-form-urlencoded")}
+    for interface, make in (("Request", lambda text, kind: Request("async-data.txt", {"method": "POST", "body": text, "headers": {"Content-Type": kind}})),
+                            ("Response", lambda text, kind: Response(text, {"headers": {"Content-Type": kind}}))):
+        for method in ("arrayBuffer", "blob", "bytes", "formData", "json", "text"):
+            body = make(*bodies.get(method, ("body", "text/plain")))
+            await call_async(f"{interface}.{method}/0", lambda: getattr(body, method)())
+        values[f"{interface} text"] = await call_async(f"{interface}.text/0 (value)", lambda: make("body", "text/plain").text())
+        values[f"{interface} json"] = (await make(*bodies["json"]).json()).a
+        values[f"{interface} formData"] = (await make(*bodies["formData"]).formData()).get("a")
+
+    # Static [NeedsCallerRealm] members: the document's realm is the caller's.
+    values["AbortSignal.abort"] = call("AbortSignal.abort/1", lambda: AbortSignal.abort("why").reason)
+    values["AbortSignal.timeout"] = call("AbortSignal.timeout/1", lambda: AbortSignal.timeout(10).aborted)
+    stream = call("ReadableStream.from/1", lambda: getattr(ReadableStream, "from")(["s"]))
+    values["ReadableStream.from"] = (await stream.getReader().read()).value if stream is not None else None
+
+    # Custom elements: define() with a JS class, and whenDefined().
+    call("CustomElementRegistry.define/3", lambda: window.customElements.define("x-py", js.XPy))
+    defined = await call_async("CustomElementRegistry.whenDefined/1", lambda: window.customElements.whenDefined("x-py"))
+    values["whenDefined is XPy"] = defined is not None and getattr(js.Object, "is")(defined, js.XPy)
+
+    # Trusted Types: a policy without callbacks (its create* throw TypeError) and one whose
+    # callbacks are Python functions.
+    bare = call("TrustedTypePolicyFactory.createPolicy/2", lambda: window.trustedTypes.createPolicy("py-bare"))
+    if bare is not None:
+        call("TrustedTypePolicy.createHTML/2 (no callback)", lambda: bare.createHTML("x"))
+    # createPolicy()'s options: a dictionary of Python callbacks.
+    policy = window.trustedTypes.createPolicy("py", {
+        "createHTML": lambda value, *rest: value + "!",
+        "createScript": lambda value, *rest: value + ";",
+        "createScriptURL": lambda value, *rest: value + "#",
+    })
+    values["TrustedTypePolicy.createHTML"] = call("TrustedTypePolicy.createHTML/2", lambda: policy.createHTML("x")).toJSON()
+    values["TrustedTypePolicy.createScript"] = call("TrustedTypePolicy.createScript/2", lambda: policy.createScript("y")).toJSON()
+    values["TrustedTypePolicy.createScriptURL"] = call("TrustedTypePolicy.createScriptURL/2", lambda: policy.createScriptURL("z")).toJSON()
+
+    # Web Animations: setKeyframes() on a KeyframeEffect.
+    effect = js.KeyframeEffect.new(document.body, None)
+    call("KeyframeEffect.setKeyframes/1", lambda: effect.setKeyframes([{"opacity": 0}, {"opacity": 1}]))
+    values["keyframes"] = len(effect.getKeyframes())
+
+    # Clipboard: a ClipboardItem's getType().
+    item = js.ClipboardItem.new({"text/plain": "clip"})
+    blob = await call_async("ClipboardItem.getType/1", lambda: item.getType("text/plain"))
+    values["clipboard blob size"] = blob.size if blob is not None else None
+
+    results["done"] = "ok"
+    publish()
+
+
+async def run():
+    try:
+        await main()
+    except Exception as error:
+        results["main"] = f"{type(error).__name__}: {error}"
+        publish()
+        raise
+
+asyncio.get_running_loop().create_task(run())
+</script>
