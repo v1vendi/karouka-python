@@ -10,12 +10,9 @@ vcpkg manifest, and Ladybird's `Base/res` (less its fonts) in `karouka/res/`:
 | Skia | `libskia.dylib` | BSD 3-Clause |
 | HarfBuzz | `libharfbuzz` | MIT ("Old MIT") |
 | ICU | `libicudata`, `libicui18n`, `libicuuc` | Unicode License v3 |
-| libavif | `libavif` | BSD 2-Clause |
-| dav1d | `libdav1d` | BSD 2-Clause |
 | libjpeg-turbo | `libjpeg` | IJG, BSD 3-Clause, zlib |
 | libpng | `libpng16` | libpng License v2 |
 | libwebp | `libwebp`, `libwebpdemux`, `libwebpmux`, `libsharpyuv` | BSD 3-Clause |
-| libyuv | `libyuv.dylib` | BSD 3-Clause |
 | Brotli | `libbrotlicommon`, `libbrotlidec`, `libbrotlienc` | MIT |
 | zlib | `libz` | zlib |
 | libxml2 | `libxml2` | MIT |

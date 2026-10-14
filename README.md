@@ -26,6 +26,7 @@ app.run()          # or: python -m karouka ui/index.html
 Early: version 0.1.0. **macOS 14+ on Apple Silicon, CPython 3.14** (with the GIL) only.
 
 - One process, one thread, no networking: `file:`, `data:` and `about:` load, `http(s)` doesn't.
+- Images: PNG, APNG, JPEG, JPEG XL, WebP, GIF, BMP, ICO and SVG. AVIF is left out of the build.
 - Python runs only in pages loaded from `file:` URLs under the app's directory, and has full OS
   access, like the app itself.
 - Each document gets its own Python subinterpreter and asyncio loop, driven by the engine's clock:

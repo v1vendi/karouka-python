@@ -12,6 +12,8 @@ as an in-process, network-free HTML-to-texture renderer and Python module:
   vcpkg dependencies are left out of pruned builds.
 - Loading: ResourceLoader without a RequestServer, in-place document loads,
   no LibTLS, disk cache, HSTS preload list, libpsl or OpenSSL in the link.
+- Images: AVIF decoding (libavif, dav1d, libyuv) is optional
+  (LADYBIRD_AVIF), and off in karouka builds.
 - Pruning: options that leave out Web API families a UI layer doesn't need
   (IndexedDB, WebSockets, WebDriver, Service Workers, WebGL, WebAssembly,
   SubtleCrypto, Notifications, MSE/Media Capture, ...), and the bindings
@@ -31,7 +33,7 @@ as an in-process, network-free HTML-to-texture renderer and Python module:
  AK/FFIHelpers.cpp                             |    5 +
  AK/FFIHelpers.h                               |    3 +
  AK/kmalloc.cpp                                |    9 +
- CMakeLists.txt                                |   75 +-
+ CMakeLists.txt                                |   89 +-
  Libraries/CMakeLists.txt                      |   24 +-
  Libraries/LibCompositing/CMakeLists.txt       |   10 +-
  .../DisplayList/DisplayList.cpp               |    3 +-
@@ -57,10 +59,12 @@ as an in-process, network-free HTML-to-texture renderer and Python module:
  Libraries/LibGfx/Font/Font.cpp                |   13 +-
  Libraries/LibGfx/Font/Typeface.cpp            |   20 +-
  Libraries/LibGfx/Font/TypefaceSkia.cpp        |   83 +-
+ .../LibGfx/ImageFormats/ImageDecoder.cpp      |    8 +-
  Libraries/LibGfx/MetalContext.mm              |   26 +-
  Libraries/LibGfx/PaintingSurface.cpp          |   14 +-
  Libraries/LibGfx/PaintingSurface.h            |    3 +
  Libraries/LibHTTP/CMakeLists.txt              |   25 +-
+ Libraries/LibImageDecoders/CMakeLists.txt     |   12 +-
  Libraries/LibJS/CMakeLists.txt                |    8 +-
  Libraries/LibJS/Runtime/Temporal/Now.cpp      |   17 +-
  Libraries/LibJS/Runtime/Temporal/Now.h        |   11 +
@@ -91,7 +95,7 @@ as an in-process, network-free HTML-to-texture renderer and Python module:
  Libraries/LibWeb/Bindings/HostDefined.cpp     |    6 +-
  Libraries/LibWeb/Bindings/HostDefined.h       |    2 +
  Libraries/LibWeb/Bindings/MainThreadVM.cpp    |    6 +-
- Libraries/LibWeb/CMakeLists.txt               |   59 +-
+ Libraries/LibWeb/CMakeLists.txt               |   64 +-
  Libraries/LibWeb/CSS/Default.css              | 1146 +---------------
  Libraries/LibWeb/CSS/Fetch.cpp                |   15 +
  Libraries/LibWeb/CSS/Fetch.h                  |    4 +
@@ -160,7 +164,7 @@ as an in-process, network-free HTML-to-texture renderer and Python module:
  Libraries/LibWeb/Embedder/SystemFonts.h       |   24 +
  Libraries/LibWeb/Embedder/WebFonts.cpp        |   24 +
  Libraries/LibWeb/Embedder/WebFonts.h          |   26 +
- Libraries/LibWeb/Fetch/Fetching/Fetching.cpp  |    6 +-
+ Libraries/LibWeb/Fetch/Fetching/Fetching.cpp  |   10 +-
  Libraries/LibWeb/FileAPI/BlobURLStore.cpp     |   25 +-
  Libraries/LibWeb/FileAPI/BlobURLStore.h       |    4 +
  Libraries/LibWeb/FileAPI/File.cpp             |    3 +-
@@ -199,6 +203,7 @@ as an in-process, network-free HTML-to-texture renderer and Python module:
  .../LibWeb/HTML/SharedResourceRequest.cpp     |   33 +-
  Libraries/LibWeb/HTML/SharedResourceRequest.h |   12 +-
  Libraries/LibWeb/HTML/StructuredSerialize.cpp |   26 +-
+ Libraries/LibWeb/HTML/SupportedImageTypes.cpp |    7 +-
  Libraries/LibWeb/HTML/Timer.cpp               |   29 +-
  Libraries/LibWeb/HTML/Window.cpp              |   16 +-
  .../LibWeb/HTML/WindowOrWorkerGlobalScope.cpp |   26 +-
@@ -279,7 +284,7 @@ as an in-process, network-free HTML-to-texture renderer and Python module:
  Libraries/LibWeb/WebGL/BindingsGlue.h         |    6 +
  .../FileAPI/SerializedBlobURLEntry.cpp        |   10 +
  .../FileAPI/SerializedBlobURLEntry.h          |    5 +
- Meta/CMake/check_for_dependencies.cmake       |   48 +-
+ Meta/CMake/check_for_dependencies.cmake       |   52 +-
  Meta/CMake/hsts_preload.cmake                 |   41 +-
  Meta/CMake/libweb_generators.cmake            |   30 +-
  Meta/CMake/rust_crate.cmake                   |    1 -
@@ -327,8 +332,8 @@ as an in-process, network-free HTML-to-texture renderer and Python module:
  Tests/LibHTTP/CMakeLists.txt                  |    5 +-
  Tests/LibURL/CMakeLists.txt                   |    5 +-
  Utilities/CMakeLists.txt                      |   19 +-
- vcpkg.json                                    |  185 ++-
- 300 files changed, 10302 insertions(+), 1883 deletions(-)
+ vcpkg.json                                    |  203 +--
+ 303 files changed, 10361 insertions(+), 1896 deletions(-)
  create mode 100644 Libraries/LibCrypto/Hash/CommonCryptoDigest.cpp
  create mode 100644 Libraries/LibCrypto/Hash/CommonCryptoDigest.h
  create mode 100644 Libraries/LibMedia/Stub/MediaStub.cpp
@@ -469,10 +474,10 @@ index 70ad04dd5f..c56dfc0cd4 100644
          // mimalloc otherwise purges with MADV_DONTNEED, and every later reuse of a purged page takes a page fault.
          mi_option_set_default(mi_option_purge_decommits, 0);
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 76636afe95..9e60028334 100644
+index 76636afe95..bf575227c8 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -16,6 +16,70 @@ if (APPLE AND NOT CMAKE_OSX_DEPLOYMENT_TARGET)
+@@ -16,6 +16,84 @@ if (APPLE AND NOT CMAKE_OSX_DEPLOYMENT_TARGET)
      set(CMAKE_OSX_DEPLOYMENT_TARGET 14.0)
  endif()
  
@@ -525,8 +530,22 @@ index 76636afe95..9e60028334 100644
 +    list(APPEND VCPKG_MANIFEST_FEATURES trimmed-icu-data)
 +endif()
 +
-+if (LADYBIRD_MEDIA_STUB OR LIBWEB_PRUNE_WEB_APIS OR LIBCRYPTO_COMMONCRYPTO)
++# karouka: AVIF images need libavif and, for its AV1 decoding, dav1d and libyuv: the default "avif"
++# feature of vcpkg.json. Builds without LADYBIRD_AVIF leave the AVIF decoder out of LibImageDecoders
++# (Libraries/LibImageDecoders/CMakeLists.txt) and stop claiming image/avif, so an AVIF image fails to
++# decode as an unknown format would.
++if (KAROUKA_SOURCE_DIR)
++    set(LADYBIRD_AVIF_DEFAULT OFF)
++else()
++    set(LADYBIRD_AVIF_DEFAULT ON)
++endif()
++option(LADYBIRD_AVIF "Decode AVIF images with libavif and dav1d" ${LADYBIRD_AVIF_DEFAULT})
++
++if (LADYBIRD_MEDIA_STUB OR LIBWEB_PRUNE_WEB_APIS OR LIBCRYPTO_COMMONCRYPTO OR NOT LADYBIRD_AVIF)
 +    set(VCPKG_MANIFEST_NO_DEFAULT_FEATURES ON)
++    if (LADYBIRD_AVIF)
++        list(APPEND VCPKG_MANIFEST_FEATURES avif)
++    endif()
 +    if (NOT LADYBIRD_MEDIA_STUB)
 +        list(APPEND VCPKG_MANIFEST_FEATURES media)
 +    endif()
@@ -543,7 +562,7 @@ index 76636afe95..9e60028334 100644
  # Pass additional information to vcpkg if we are using it.
  if (CMAKE_TOOLCHAIN_FILE MATCHES "vcpkg.cmake$")
      set(CMAKE_PROJECT_ladybird_INCLUDE_BEFORE "Meta/CMake/vcpkg/generate_vcpkg_toolchain_variables.cmake")
-@@ -137,7 +201,11 @@ if (NOT (ENABLE_FUZZERS OR ENABLE_COMPILER_EXPLORER_BUILD OR ANDROID OR IOS))
+@@ -137,7 +215,11 @@ if (NOT (ENABLE_FUZZERS OR ENABLE_COMPILER_EXPLORER_BUILD OR ANDROID OR IOS))
      endif()
  endif()
  
@@ -556,7 +575,7 @@ index 76636afe95..9e60028334 100644
      add_subdirectory(Services)
      add_subdirectory(UI)
  endif()
-@@ -151,3 +219,8 @@ add_custom_target(check-style
+@@ -151,3 +233,8 @@ add_custom_target(check-style
      COMMAND ${Python3_EXECUTABLE} "${ladybird_SOURCE_DIR}/Meta/Linters/check_style.py"
      USES_TERMINAL
  )
@@ -2455,6 +2474,32 @@ index 2c869c9339..919354c97b 100644
  #else
          if (!font_manager) {
              font_manager = SkFontMgr_New_FontConfig(nullptr, SkFontScanner_Make_FreeType());
+diff --git a/Libraries/LibGfx/ImageFormats/ImageDecoder.cpp b/Libraries/LibGfx/ImageFormats/ImageDecoder.cpp
+index fbae5ff9a5..ef2ac96027 100644
+--- a/Libraries/LibGfx/ImageFormats/ImageDecoder.cpp
++++ b/Libraries/LibGfx/ImageFormats/ImageDecoder.cpp
+@@ -4,7 +4,9 @@
+  * SPDX-License-Identifier: BSD-2-Clause
+  */
+ 
+-#include <LibGfx/ImageFormats/AVIFLoader.h>
++#ifndef LADYBIRD_NO_AVIF
++#    include <LibGfx/ImageFormats/AVIFLoader.h>
++#endif
+ #include <LibGfx/ImageFormats/BMPLoader.h>
+ #include <LibGfx/ImageFormats/GIFLoader.h>
+ #include <LibGfx/ImageFormats/ICOLoader.h>
+@@ -31,7 +33,9 @@ static ErrorOr<OwnPtr<ImageDecoderPlugin>> probe_and_sniff_for_appropriate_plugi
+         { JPEGXLImageDecoderPlugin::sniff, JPEGXLImageDecoderPlugin::create },
+         { PNGImageDecoderPlugin::sniff, PNGImageDecoderPlugin::create },
+         { WebPImageDecoderPlugin::sniff, WebPImageDecoderPlugin::create },
+-        { AVIFImageDecoderPlugin::sniff, AVIFImageDecoderPlugin::create }
++#ifndef LADYBIRD_NO_AVIF
++        { AVIFImageDecoderPlugin::sniff, AVIFImageDecoderPlugin::create },
++#endif
+     };
+ 
+     for (auto& plugin : s_initializers) {
 diff --git a/Libraries/LibGfx/MetalContext.mm b/Libraries/LibGfx/MetalContext.mm
 index 9f0b87ba86..dab4a96029 100644
 --- a/Libraries/LibGfx/MetalContext.mm
@@ -2574,6 +2619,46 @@ index bb1ccd8014..304c874f0c 100644
 +if (LIBHTTP_DISK_CACHE)
 +    target_link_libraries(LibHTTP PRIVATE LibDatabase)
 +endif()
+diff --git a/Libraries/LibImageDecoders/CMakeLists.txt b/Libraries/LibImageDecoders/CMakeLists.txt
+index c41c6d9081..10243d1667 100644
+--- a/Libraries/LibImageDecoders/CMakeLists.txt
++++ b/Libraries/LibImageDecoders/CMakeLists.txt
+@@ -1,7 +1,6 @@
+ set(LIBGFX_IMAGE_FORMATS_DIR "${LADYBIRD_SOURCE_DIR}/Libraries/LibGfx/ImageFormats")
+ 
+ set(SOURCES
+-    ${LIBGFX_IMAGE_FORMATS_DIR}/AVIFLoader.cpp
+     ${LIBGFX_IMAGE_FORMATS_DIR}/BMPLoader.cpp
+     ${LIBGFX_IMAGE_FORMATS_DIR}/ExifReader.cpp
+     ${LIBGFX_IMAGE_FORMATS_DIR}/GIFLoader.cpp
+@@ -13,6 +12,10 @@ set(SOURCES
+     ${LIBGFX_IMAGE_FORMATS_DIR}/WebPLoader.cpp
+ )
+ 
++if (LADYBIRD_AVIF)
++    list(APPEND SOURCES ${LIBGFX_IMAGE_FORMATS_DIR}/AVIFLoader.cpp)
++endif()
++
+ ladybird_lib(LibImageDecoders imagedecoders)
+ 
+ import_rust_crate(
+@@ -38,10 +41,15 @@ target_link_libraries(LibImageDecoders PRIVATE
+     WebP::webpdecoder
+     WebP::webpdemux
+     WebP::libwebpmux
+-    avif
+     libimagedecoders_rust
+ )
+ 
++if (LADYBIRD_AVIF)
++    target_link_libraries(LibImageDecoders PRIVATE avif)
++else()
++    set_property(SOURCE ${LIBGFX_IMAGE_FORMATS_DIR}/ImageDecoder.cpp APPEND PROPERTY COMPILE_DEFINITIONS LADYBIRD_NO_AVIF)
++endif()
++
+ target_include_directories(LibImageDecoders PRIVATE ${WUFFS_INCLUDE_DIR})
+ 
+ set(generated_sources TIFFMetadata.h TIFFTagHandler.cpp)
 diff --git a/Libraries/LibJS/CMakeLists.txt b/Libraries/LibJS/CMakeLists.txt
 index e0525777af..69afd2842a 100644
 --- a/Libraries/LibJS/CMakeLists.txt
@@ -3957,7 +4042,7 @@ index a965b6c1dc..b6efefdc45 100644
  
  JS::VM& main_thread_vm()
 diff --git a/Libraries/LibWeb/CMakeLists.txt b/Libraries/LibWeb/CMakeLists.txt
-index 7604b6243a..5ebc9d0b9b 100644
+index 7604b6243a..681f9bf6c0 100644
 --- a/Libraries/LibWeb/CMakeLists.txt
 +++ b/Libraries/LibWeb/CMakeLists.txt
 @@ -281,6 +281,16 @@ set(SOURCES
@@ -4007,8 +4092,15 @@ index 7604b6243a..5ebc9d0b9b 100644
  
  invoke_py_generator(
      "AriaRoles.cpp"
-@@ -1171,12 +1204,17 @@ set(GENERATED_SOURCES
+@@ -1169,14 +1202,24 @@ set(GENERATED_SOURCES
+ )
+ 
  ladybird_lib(LibWeb web EXPLICIT_SYMBOL_EXPORT)
++
++# karouka: a build without AVIF decoding (LADYBIRD_AVIF) doesn't claim image/avif.
++if (NOT LADYBIRD_AVIF)
++    set_property(SOURCE HTML/SupportedImageTypes.cpp Fetch/Fetching/Fetching.cpp APPEND PROPERTY COMPILE_DEFINITIONS LADYBIRD_NO_AVIF)
++endif()
  target_link_libraries(LibWeb PUBLIC LibCompositing LibWebCommon)
  
 -target_link_libraries(LibWeb PRIVATE LibCore LibCompress LibCrypto LibJS LibHTTP LibGfx LibIPC LibRegex LibSyntax LibTextCodec LibUnicode LibMedia LibMediaClient LibWasm LibXML LibURL LibTLS LibRequests LibGC LibImageDecoderClient LibThreading skia LibXml2::LibXml2)
@@ -4026,7 +4118,7 @@ index 7604b6243a..5ebc9d0b9b 100644
  foreach(angle_target IN LISTS ANGLE_TARGETS)
      target_include_directories(LibWeb PRIVATE $<TARGET_PROPERTY:${angle_target},INTERFACE_INCLUDE_DIRECTORIES>)
      target_include_directories(LibWeb SYSTEM PRIVATE $<TARGET_PROPERTY:${angle_target},INTERFACE_SYSTEM_INCLUDE_DIRECTORIES>)
-@@ -1211,14 +1249,20 @@ import_rust_crate(
+@@ -1211,14 +1254,20 @@ import_rust_crate(
  target_link_libraries(libweb_rust INTERFACE LibGfx)
  test_rust_crate(MANIFEST_PATH Rust/Cargo.toml CRATE_NAME libweb_rust)
  
@@ -4048,7 +4140,7 @@ index 7604b6243a..5ebc9d0b9b 100644
  set_property(SOURCE HTML/Parser/HTMLTokenizer.cpp APPEND PROPERTY OBJECT_DEPENDS ${_libweb_rust_lib})
  set_property(SOURCE HTML/Parser/HTMLParser.cpp APPEND PROPERTY OBJECT_DEPENDS ${_libweb_rust_lib})
  set_property(SOURCE HTML/Parser/SpeculativeHTMLParser.cpp APPEND PROPERTY OBJECT_DEPENDS ${_libweb_rust_lib})
-@@ -1229,7 +1273,7 @@ endif()
+@@ -1229,7 +1278,7 @@ endif()
  if(NOT BUILD_SHARED_LIBS)
      add_custom_command(TARGET LibWeb POST_BUILD
          COMMAND ${CMAKE_AR} -x $<TARGET_FILE:libweb_rust>
@@ -4057,7 +4149,7 @@ index 7604b6243a..5ebc9d0b9b 100644
          COMMAND ${CMAKE_AR} -qS $<TARGET_FILE:LibWeb> *.o
          COMMAND ${CMAKE_RANLIB} $<TARGET_FILE:LibWeb>
          COMMAND ${CMAKE_COMMAND} -E remove -f *.o
-@@ -1251,7 +1295,9 @@ if(NOT BUILD_SHARED_LIBS)
+@@ -1251,7 +1300,9 @@ if(NOT BUILD_SHARED_LIBS)
      set_property(SOURCE Painting/PaintingRustBridge.cpp APPEND PROPERTY OBJECT_DEPENDS ${_libweb_rust_lib})
      set_property(SOURCE SVG/AttributeParsing.cpp APPEND PROPERTY OBJECT_DEPENDS ${_libweb_rust_lib})
      set_property(SOURCE SVG/Path.cpp APPEND PROPERTY OBJECT_DEPENDS ${_libweb_rust_lib})
@@ -4068,7 +4160,7 @@ index 7604b6243a..5ebc9d0b9b 100644
  endif()
  
  if (HAS_FONTCONFIG)
-@@ -1259,3 +1305,8 @@ if (HAS_FONTCONFIG)
+@@ -1259,3 +1310,8 @@ if (HAS_FONTCONFIG)
  endif()
  
  generate_js_bindings(LibWeb)
@@ -9389,7 +9481,7 @@ index 0000000000..1d6460bcba
 +
 +}
 diff --git a/Libraries/LibWeb/Fetch/Fetching/Fetching.cpp b/Libraries/LibWeb/Fetch/Fetching/Fetching.cpp
-index 107480f786..36ad27b1c7 100644
+index 107480f786..daccb9d722 100644
 --- a/Libraries/LibWeb/Fetch/Fetching/Fetching.cpp
 +++ b/Libraries/LibWeb/Fetch/Fetching/Fetching.cpp
 @@ -25,6 +25,7 @@
@@ -9400,7 +9492,19 @@ index 107480f786..36ad27b1c7 100644
  #include <LibWeb/Fetch/BodyInit.h>
  #include <LibWeb/Fetch/Fetching/Checks.h>
  #include <LibWeb/Fetch/Fetching/FetchedDataReceiver.h>
-@@ -1326,7 +1327,10 @@ GC::Ref<PendingResponse> scheme_fetch(JS::Realm& realm, Infrastructure::FetchPar
+@@ -316,7 +317,11 @@ GC::Ref<Infrastructure::FetchController> fetch(JS::Realm& realm, Infrastructure:
+                 // AD-HOC: The spec default omits AVIF and WebP, which causes CDNs that perform format negotiation to
+                 //         potentially fall back to non alpha-preserving formats.
+                 //         Spec issue: https://github.com/whatwg/fetch/issues/1740
++#ifndef LADYBIRD_NO_AVIF
+                 value = "image/avif,image/webp,image/png,image/svg+xml,image/*;q=0.8,*/*;q=0.5"sv;
++#else
++                value = "image/webp,image/png,image/svg+xml,image/*;q=0.8,*/*;q=0.5"sv;
++#endif
+                 break;
+             // -> "json"
+             case Infrastructure::Request::Destination::JSON:
+@@ -1326,7 +1331,10 @@ GC::Ref<PendingResponse> scheme_fetch(JS::Realm& realm, Infrastructure::FetchPar
          // Requests made via fetch() have an empty destination, so we use that to distinguish between
          // subresource loads initiated by the browser (which have a destination) and programmatic fetches
          // (which do not). This prevents data exfiltration via fetch() from file:// pages.
@@ -11717,6 +11821,24 @@ index 1a7f0e3061..0e380a3c6d 100644
  template WEB_API ErrorOr<bool> StructuredSerializeReader::decode();
  template WEB_API ErrorOr<double> StructuredSerializeReader::decode();
  template WEB_API ErrorOr<Utf16String> StructuredSerializeReader::decode();
+diff --git a/Libraries/LibWeb/HTML/SupportedImageTypes.cpp b/Libraries/LibWeb/HTML/SupportedImageTypes.cpp
+index f7a34004ec..d23af539be 100644
+--- a/Libraries/LibWeb/HTML/SupportedImageTypes.cpp
++++ b/Libraries/LibWeb/HTML/SupportedImageTypes.cpp
+@@ -15,8 +15,11 @@ bool is_supported_image_type(Utf16View type)
+         return true;
+     if (type.length_in_code_units() < 6 || !type.substring_view(0, 6).equals_ignoring_ascii_case(u"image/"sv))
+         return false;
+-    return type.equals_ignoring_ascii_case(u"image/avif"sv)
+-        || type.equals_ignoring_ascii_case(u"image/bmp"sv)
++    return
++#ifndef LADYBIRD_NO_AVIF
++        type.equals_ignoring_ascii_case(u"image/avif"sv) ||
++#endif
++        type.equals_ignoring_ascii_case(u"image/bmp"sv)
+         || type.equals_ignoring_ascii_case(u"image/gif"sv)
+         || type.equals_ignoring_ascii_case(u"image/vnd.microsoft.icon"sv)
+         || type.equals_ignoring_ascii_case(u"image/x-icon"sv)
 diff --git a/Libraries/LibWeb/HTML/Timer.cpp b/Libraries/LibWeb/HTML/Timer.cpp
 index 6450aee406..1ff224259e 100644
 --- a/Libraries/LibWeb/HTML/Timer.cpp
@@ -17385,7 +17507,7 @@ index 45ae0016d5..55b423e98a 100644
      Object object;
      URL::Origin origin;
 diff --git a/Meta/CMake/check_for_dependencies.cmake b/Meta/CMake/check_for_dependencies.cmake
-index d676306996..7465a510fa 100644
+index d676306996..4e2c66dbf2 100644
 --- a/Meta/CMake/check_for_dependencies.cmake
 +++ b/Meta/CMake/check_for_dependencies.cmake
 @@ -2,7 +2,9 @@ include_guard()
@@ -17414,7 +17536,18 @@ index d676306996..7465a510fa 100644
  find_package(FastFloat CONFIG REQUIRED)
  find_package(fmt CONFIG REQUIRED)
  find_package(simdutf REQUIRED)
-@@ -26,7 +34,9 @@ find_path(WUFFS_INCLUDE_DIR NAMES wuffs/wuffs-v0.3.c REQUIRED)
+@@ -18,7 +26,9 @@ find_package(simdutf REQUIRED)
+ # LibGfx dependencies
+ find_package(harfbuzz REQUIRED)
+ find_package(JPEG REQUIRED)
+-find_package(LIBAVIF REQUIRED)
++if (LADYBIRD_AVIF)
++    find_package(LIBAVIF REQUIRED)
++endif()
+ find_package(PNG REQUIRED)
+ find_package(WebP REQUIRED)
+ find_path(WUFFS_INCLUDE_DIR NAMES wuffs/wuffs-v0.3.c REQUIRED)
+@@ -26,7 +36,9 @@ find_path(WUFFS_INCLUDE_DIR NAMES wuffs/wuffs-v0.3.c REQUIRED)
  pkg_check_modules(WOFF2 REQUIRED IMPORTED_TARGET libwoff2dec)
  
  # TODO: Figure out if we can do this the same way on all platforms
@@ -17425,7 +17558,7 @@ index d676306996..7465a510fa 100644
      pkg_check_modules(AVCODEC REQUIRED IMPORTED_TARGET libavcodec-ladybird)
      pkg_check_modules(AVFORMAT REQUIRED IMPORTED_TARGET libavformat-ladybird)
      pkg_check_modules(AVUTIL REQUIRED IMPORTED_TARGET libavutil-ladybird)
-@@ -66,13 +76,18 @@ else()
+@@ -66,13 +78,18 @@ else()
      set(USE_VULKAN_DMABUF_IMAGES OFF CACHE BOOL "" FORCE)
  endif()
  
@@ -17448,7 +17581,7 @@ index d676306996..7465a510fa 100644
  find_package(Threads REQUIRED)
  find_package(ZLIB REQUIRED)
  
-@@ -84,15 +99,22 @@ else()
+@@ -84,15 +101,22 @@ else()
      set(BROTLI_TARGETS PkgConfig::BROTLI)
  endif()
  
@@ -19778,7 +19911,7 @@ index 99609e7040..c0fe32dc88 100644
      install(TARGETS wasm COMPONENT wasm)
      install(FILES "${GIT_COMMIT_FILE}" COMPONENT wasm DESTINATION .)
 diff --git a/vcpkg.json b/vcpkg.json
-index 574dba018f..8283def57e 100644
+index 574dba018f..43490f6b73 100644
 --- a/vcpkg.json
 +++ b/vcpkg.json
 @@ -1,35 +1,7 @@
@@ -19841,7 +19974,7 @@ index 574dba018f..8283def57e 100644
      },
      {
        "name": "harfbuzz",
-@@ -68,6 +28,7 @@
+@@ -68,22 +28,13 @@
      {
        "name": "harfbuzz",
        "platform": "osx",
@@ -19849,10 +19982,15 @@ index 574dba018f..8283def57e 100644
        "features": [
          "coretext",
          "icu"
-@@ -80,10 +41,6 @@
-         "dav1d"
        ]
      },
+     "icu",
+-    {
+-      "name": "libavif",
+-      "features": [
+-        "dav1d"
+-      ]
+-    },
 -    {
 -      "name": "libdwarf",
 -      "platform": "linux | windows | osx"
@@ -19860,7 +19998,7 @@ index 574dba018f..8283def57e 100644
      "libjpeg-turbo",
      {
        "name": "libpng",
-@@ -91,15 +48,6 @@
+@@ -91,15 +42,6 @@
          "apng"
        ]
      },
@@ -19876,7 +20014,7 @@ index 574dba018f..8283def57e 100644
      "libtommath",
      {
        "name": "libwebp",
-@@ -109,19 +57,15 @@
+@@ -109,19 +51,15 @@
          "simd"
        ]
      },
@@ -19901,7 +20039,7 @@ index 574dba018f..8283def57e 100644
      {
        "name": "pthread",
        "platform": "windows"
-@@ -176,10 +120,6 @@
+@@ -176,10 +114,6 @@
        "platform": "windows | freebsd",
        "default-features": false
      },
@@ -19912,7 +20050,7 @@ index 574dba018f..8283def57e 100644
      "simdjson",
      "simdutf",
      {
-@@ -188,7 +128,6 @@
+@@ -188,7 +122,6 @@
        "default-features": false,
        "features": [
          "metal",
@@ -19920,7 +20058,7 @@ index 574dba018f..8283def57e 100644
          "harfbuzz",
          "icu"
        ]
-@@ -224,7 +163,6 @@
+@@ -224,7 +157,6 @@
          "vulkan"
        ]
      },
@@ -19928,17 +20066,29 @@ index 574dba018f..8283def57e 100644
      {
        "name": "tiff",
        "features": [
-@@ -247,6 +185,113 @@
+@@ -247,6 +179,125 @@
      "wuffs",
      "zlib"
    ],
 +  "default-features": [
++    "avif",
 +    "backtraces",
 +    "browser",
 +    "media",
 +    "openssl"
 +  ],
 +  "features": {
++    "avif": {
++      "description": "AVIF image decoding: libavif, with dav1d for AV1 (and libyuv, which libavif needs). Builds without LADYBIRD_AVIF (karouka) leave this feature out.",
++      "dependencies": [
++        {
++          "name": "libavif",
++          "features": [
++            "dav1d"
++          ]
++        }
++      ]
++    },
 +    "backtraces": {
 +      "description": "Symbolized stack traces for AK's assertion failures and LibGC's heap dumps: cpptrace and the libdwarf (and zstd) it reads debug info with. Builds with LIBWEB_PRUNE_WEB_APIS (karouka) leave this feature out, and AK falls back to backtrace(3).",
 +      "dependencies": [
@@ -20042,7 +20192,7 @@ index 574dba018f..8283def57e 100644
    "overrides": [
      {
        "name": "angle",
-@@ -346,7 +391,7 @@
+@@ -346,7 +397,7 @@
      },
      {
        "name": "mimalloc",

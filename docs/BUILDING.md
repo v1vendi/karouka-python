@@ -58,6 +58,9 @@ PYTHONPATH=third_party/ladybird/Build/release/karouka/lib python3.14 -m karouka 
   script types (`<script type="text/python">`), and control over background threads.
 - **Rendering and memory:** drawing into a Metal texture, layout only when something invalidated
   it, and trimmed ICU and libxml2 data.
+- **No AVIF:** the `LADYBIRD_AVIF` option (off when building for karouka) leaves out the AVIF
+  decoder and its libavif, dav1d and libyuv dependencies, and LibWeb stops claiming `image/avif`.
+  Pass `-DLADYBIRD_AVIF=ON` at configure time to bring it back.
 
 To look at it as a commit, run `./build.sh setup` and then `git -C third_party/ladybird show`.
 
