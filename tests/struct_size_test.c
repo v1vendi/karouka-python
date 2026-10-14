@@ -323,13 +323,13 @@ static void check_memory_stats(kr_system* system)
 
 /* ---- font descs: past struct_size, collection_index would be 0xABABABAB, a face the font lacks */
 
-/* pages/fonts/NotoSans-Regular.ttf in $KR_SOURCE_DIR (the source tree under test), else in the source it
+/* tests/fonts/NotoSans-Regular.ttf in $KR_SOURCE_DIR (the source tree under test), else in the source it
  * was built from. */
 static char const* font_path(void)
 {
     static char path[4096];
     char const* root = getenv("KR_SOURCE_DIR");
-    snprintf(path, sizeof path, "%s/pages/fonts/NotoSans-Regular.ttf", root && *root ? root : KAROUKA_SOURCE_DIR);
+    snprintf(path, sizeof path, "%s/tests/fonts/NotoSans-Regular.ttf", root && *root ? root : KAROUKA_SOURCE_DIR);
     return path;
 }
 #define FONT_PATH font_path()

@@ -152,8 +152,8 @@ ErrorOr<Web::Platform::DecodedImage> LocalImageCodecPlugin::decode(ReadonlyBytes
 // LibGC already counts decoded pixels, both as they are allocated (BitmapDecodedImageData,
 // and decode_image below for animations) and as live external memory of the image data cells. But
 // a page that swaps images can hold several times what it shows: the next collection waits for
-// 1.75x the last live bytes and sweeps on a timer, so pages/tests/animated_churn.html (~5 GIFs of
-// 4 MB a frame) reaches 44 MB of decoded pixels without this. So once decoded pixels grew by
+// 1.75x the last live bytes and sweeps on a timer, so a page cycling ~5 GIFs of
+// 4 MB a frame reaches 44 MB of decoded pixels without this. So once decoded pixels grew by
 // max(8 MB, 3/4 of what was left after the last such collection) since then, collect, sweeping at
 // once: before a decode, or at the frame boundary when the frame's last decode took them past it
 // (below). The document's image caches mark only what their prune would keep of

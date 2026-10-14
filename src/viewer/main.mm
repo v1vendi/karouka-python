@@ -83,7 +83,7 @@
  *
  * --blur F / --focus F (repeatable) script the window's key state: in frame F the input view's host
  * gets the setFocused: NO / YES that windowDidResignKey / windowDidBecomeKey send every pane, so
- * kr_view_set_focused runs headless. pages/tests/window_focus.html checks it through
+ * kr_view_set_focused runs headless, and a page can check it through
  * document.hasFocus().
  *
  * The viewer hands karouka its own Metal device and queue (kr_system_desc.mtl_device/mtl_queue), as
@@ -1885,7 +1885,7 @@ static bool on_navigate(kr_view*, char const* path, void* user_data)
     return true;
 }
 
-// A stand-in game for the `engine` channel (pages/tests/engine_channel.html): logs page triggers
+// A stand-in game for the `engine` channel: logs page triggers
 // under KR_DEBUG, answers a trigger named "echo" with a "echoed" event carrying the same arguments,
 // resolves engine.call("echo", ...) with its argument array and rejects any other call.
 static void on_engine_trigger(void*, kr_view* view, char const* name, char const* json_args)

@@ -1,7 +1,7 @@
 """the _karouka extension module (src/python/module.cpp) drives a real system and view.
 
 Run by ./build.sh test with the built module on PYTHONPATH and KR_SOURCE_DIR set
-to the checkout: it renders a pages/tests page headless on the software backend, captures a PNG and
+to the checkout: it renders tests/python/pages/external_module.html headless on the software backend, captures a PNG and
 checks the page's title against its karouka-check-title meta; checks the module exports only
 PyInit__karouka; and imports it in a subinterpreter with its own GIL. Exits 1 on any failure.
 """
@@ -35,7 +35,7 @@ def raises(what, call, error=_karouka.Error):
 
 
 source = os.environ["KR_SOURCE_DIR"]
-page = os.path.join(source, "pages/tests/external_module.html")
+page = os.path.join(source, "tests/python/pages/external_module.html")
 with open(page, encoding="utf-8") as f:
     want_title = re.search(r'<meta name="karouka-check-title" content="([^"]*)">', f.read()).group(1)
 

@@ -962,7 +962,7 @@ kr_result kr_system_create2(kr_system_desc const* host_desc, kr_system** out_sys
     // (LibURL, URL::origin()), set before any URL computes its origin. Without it a file: page's
     // origin is opaque, so a module script it loads from a file: URL (a "cors" request) fails
     // Fetch's same-origin step and then "cors mode needs an HTTP(S) URL" in main fetch: the
-    // script's result is null and it never runs (pages/tests/external_module.html).
+    // script's result is null and it never runs (tests/python/pages/external_module.html).
     // Classic scripts, sheets and images are "no-cors" and fonts have an ad-hoc pass, so they
     // loaded either way. Scheme fetch serves file: URLs only to a file: client. Side effects: file:
     // documents are same-origin with each other and self.origin reads "file://", not "null".
@@ -970,7 +970,7 @@ kr_result kr_system_create2(kr_system_desc const* host_desc, kr_system** out_sys
         URL::set_file_scheme_urls_have_tuple_origins();
     // Upstream scheme fetch also refuses file: URLs to requests without a destination, fetch()
     // among them. karouka has no network to exfiltrate through, so a file: page may fetch() other
-    // local files (patch 0092 Embedder/FileFetch, pages/tests/fetch_file_url.html).
+    // local files (Embedder/FileFetch in the Ladybird patch).
     Web::Embedder::set_fetch_reads_file_urls(true);
     // <script> types a view registered run through it (kr_view_set_script_type_callback, ScriptTypes.h).
     Web::Embedder::set_script_type_handler(&s_script_type_dispatch);
